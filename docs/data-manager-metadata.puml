@@ -1,0 +1,65 @@
+@startuml
+class Metadata {
+    metadata : jsonString
+    annotations : list
+    add_metadata()
+    remove_metadata()
+    get_metadata()
+    add_annotation()
+    remove_annotation()
+    get_annotation()
+    from_json()
+    to_json()
+}
+note right: Metadata is intended\nto be stored with a dataset.\nIt will be a collection of\ndataset descriptive/\nstructural metadata and annotations.
+
+class Annotation {
+    type : String
+    name : String
+    created : timestmp
+    from_json()
+    to_json()
+}
+note right: Annotation types that can be\n added to the metadata
+
+class LabelAnnotation {
+    label : String
+    value : String
+}
+
+class TagAnnotation {
+    rule : regexString
+    groups : integer
+    columns : list
+    set_columns()
+    get_columns()
+    add_tags(text)
+}
+
+class FieldDescriptorAnnotation {
+    val1 : String
+    val2 : String
+    method1()
+    method2()
+}
+
+class ServiceExecutionAnnotation {
+    val1 : String
+    val2 : String
+    method1()
+    method2()
+}
+
+class 3DPoseAnnotation {
+    val1 : String
+    val2 : String
+    method1()
+    method2()
+}
+
+Annotation <|-- LabelAnnotation
+Annotation <|-- TagAnnotation
+Annotation <|-- FieldDescriptorAnnotation
+FieldDescriptorAnnotation <|-- ServiceExecutionAnnotation
+ServiceExecutionAnnotation <|-- 3DPoseAnnotation
+@enduml

@@ -6,6 +6,11 @@ The ``im-data-manager-metadata`` package is a set of utilities
 employed by the `Informatics Matters`_ Data-Manager service
 as a metadata framework for molecular datasets.
 
+.. image:: docs/data_manager_metadata.png
+  :width: 800
+  :alt: Data Manager Metadata Classes
+
+
 Example usage::
 
     >>> from data_manager_metadata import metadata
