@@ -29,6 +29,10 @@ setup(
     # Our modules to package
     packages=find_packages(exclude=['*.test', '*.test.*', 'test.*', 'test']),
     py_modules=['data_manager_metadata'],
+    # Minimum requirements to use the metadata.
+    # This is different to the requirements.txt file
+    install_requires=[
+    ],
 
     # Supported Python versions
     python_requires='>=3, <4',

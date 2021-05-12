@@ -1,1 +1,6 @@
-# Intentionally blank
+# Project-wide requirements go here.
+# Package-specific requirements
+# should be set in setup.py's install_requires.
+# See https://packaging.python.org/discussions/install-requires-vs-requirements/
+
+# Intentionally blank.
