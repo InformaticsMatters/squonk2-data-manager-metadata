@@ -57,6 +57,7 @@ class 3DPoseAnnotation {
     method2()
 }
 
+Metadata  |o..|{   Annotation
 Annotation <|-- LabelAnnotation
 Annotation <|-- TagAnnotation
 Annotation <|-- FieldDescriptorAnnotation
