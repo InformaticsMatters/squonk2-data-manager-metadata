@@ -1,0 +1,15 @@
+Informatics Matters Data-Manager Metadata
+=========================================
+
+A metadata package for the Data Tier Data Manager service.
+The ``im-data-manager-metadata`` package is a set of utilities
+employed by the `Informatics Matters`_ Data-Manager service
+as a metadata framework for molecular datasets.
+
+Example usage::
+
+    >>> from data_manager_metadata import metadata
+    >>> m_version: str = metadata.version()
+
+
+.. _Informatics Matters: http://www.informaticsmatters.com
