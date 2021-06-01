@@ -20,12 +20,10 @@ class Metadata:
     """
     metadata: json = {}
     annotations: list = []
-    pass
 
     def to_json(self):
         """ Serialize class to JSON
         """
-        pass
 
 
 class Annotation:
@@ -38,12 +36,10 @@ class Annotation:
     type: str = ''
     created: datetime = 0
     name: str
-    pass
 
     def to_json(self):
         """ Serialize class to JSON
         """
-        pass
 
 
 class LabelAnnotation(Annotation):
@@ -54,7 +50,6 @@ class LabelAnnotation(Annotation):
     """
     label: str = ''
     value: str = ''
-    pass
 
 
 class TagAnnotation(Annotation):
@@ -64,7 +59,6 @@ class TagAnnotation(Annotation):
     Purpose: Object to .
 
     """
-    pass
 
 
 if __name__ == "__main__":
