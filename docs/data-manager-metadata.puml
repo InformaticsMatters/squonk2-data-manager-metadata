@@ -1,24 +1,27 @@
 @startuml
 class Metadata {
-    metadata : jsonString
+    name : String
+    description : String
+    created : timestamp
+    last_updated : timestamp
+    created_by : String
     annotations : list
-    add_metadata()
-    remove_metadata()
-    get_metadata()
-    add_annotation()
-    remove_annotation()
-    get_annotation()
-    from_json()
+    add_annotation(obj)
+    remove_annotation(name)
+    get_annotation(name)
     to_json()
+    to_pickle()
 }
 note right: Metadata is intended\nto be stored with a dataset.\nIt will be a collection of\ndataset descriptive/\nstructural metadata and annotations.
 
-class Annotation {
+abstract class Annotation {
     type : String
     name : String
-    created : timestmp
-    from_json()
+    created : timestamp
+    last_updated : timestamp
+    set_last_updated()
     to_json()
+    to_pickle()
 }
 note right: Annotation types that can be\n added to the metadata
 
@@ -37,24 +40,21 @@ class TagAnnotation {
 }
 
 class FieldDescriptorAnnotation {
-    val1 : String
-    val2 : String
-    method1()
-    method2()
+    origin : String
+    description : String
+    fields : Dict
+    add_field(name, type, description)
+    remove_field(name)
+    get_field(name)
+    to_json()
 }
 
 class ServiceExecutionAnnotation {
-    val1 : String
-    val2 : String
-    method1()
-    method2()
-}
-
-class 3DPoseAnnotation {
-    val1 : String
-    val2 : String
-    method1()
-    method2()
+    service : String
+    service_version : String
+    user : String
+    parameters : Dict
+    to_yaml()
 }
 
 Metadata  |o..|{   Annotation
@@ -62,5 +62,4 @@ Annotation <|-- LabelAnnotation
 Annotation <|-- TagAnnotation
 Annotation <|-- FieldDescriptorAnnotation
 FieldDescriptorAnnotation <|-- ServiceExecutionAnnotation
-ServiceExecutionAnnotation <|-- 3DPoseAnnotation
 @enduml

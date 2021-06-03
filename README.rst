@@ -11,7 +11,23 @@ as a metadata framework for molecular datasets.
   :alt: Data Manager Metadata Classes
 
 
+Dependencies
+************
+- PyYAML>=5.3
+- jsonpickle>=1.4.2
+
+
+Running the Unit Tests
+**********************
+
+    >>> python -m unittest test.test
+
+
+
 Example usage::
+***************
+
+See test/test.py
 
     >>> from data_manager_metadata import metadata
     >>> m_version: str = metadata.version()

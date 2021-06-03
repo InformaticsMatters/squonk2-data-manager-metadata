@@ -32,6 +32,8 @@ setup(
     # Minimum requirements to use the metadata.
     # This is different to the requirements.txt file
     install_requires=[
+        'PyYAML>=5.3',
+        'jsonpickle>=1.4.2',
     ],
 
     # Supported Python versions
