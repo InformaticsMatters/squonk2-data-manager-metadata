@@ -13,26 +13,30 @@ class MyTestCase(unittest.TestCase):
         print ('1. Metadata')
         annotations_list = []
         metadata = Metadata('test','test description','bob',annotations_list)
-        output_JSONData = json.dumps(metadata.to_json(), indent=4)
-        output_json = json.loads(output_JSONData)
-        print(output_json)
+        results_metadata = {'name': 'test', 'description': 'test description',
+                            'created_by': 'bob', 'annotations': []}
+        self.assertEqual(metadata.to_dict(), results_metadata)
+        print('\nok')
 
         # 2. LabelAnnotation
         print ('\n2. Label Annotation')
         annotation1 = LabelAnnotation('label1', 'value1', 'label1name')
+        results1 = {'annotation': {'name': 'label1name', 'type': 'label'},
+                    'label': 'label1', 'value': 'value1'}
         annotation2 = LabelAnnotation('label2', 'value2')
-        output_JSONData = json.dumps(annotation1.to_json(), indent=4)
-        output_json = json.loads(output_JSONData)
-        print(output_json)
-        output_JSONData = json.dumps(annotation2.to_json(), indent=4)
-        output_json = json.loads(output_JSONData)
-        print(output_json)
-        self.assertEqual(annotation1.to_dict(), {'label': 'label1', 'value': 'value1'})
-        self.assertEqual(annotation2.to_dict(), {'label': 'label2', 'value': 'value2'})
+        results2 = {'annotation': {'name': 'label2', 'type': 'label'},
+                    'label': 'label2', 'value': 'value2'}
+        self.assertEqual(annotation1.to_dict(), results1)
+        self.assertEqual(annotation2.to_dict(), results2)
 
         # 3. FieldDescriptorAnnotation
         print ('\n3. Field Description Annotation')
         annotation3 = FieldDescriptorAnnotation('Supplier 1', 'A description', 'Dataset1')
+        results3 = {'annotation': {'type': 'field_descriptor', 'name': 'Dataset1'},
+                    'origin': 'Supplier 1', 'description': 'A description',
+                    'fields': {'smiles': {'type': 'string',
+                                          'description': 'standardized smiles'},
+                               'ID': {'type': 'string', 'description': 'Molecule Identifier'}}}
         annotation3.add_field('smiles', 'string', 'standardized smiles')
         annotation3.add_field('ID', 'string', 'Molecule Identifier')
         annotation3.add_field('extra', 'string', 'extra field')
@@ -44,6 +48,7 @@ class MyTestCase(unittest.TestCase):
         output_JSONData = json.dumps(annotation3.to_json(), indent=4)
         output_json = json.loads(output_JSONData)
         print(output_json)
+        self.assertEqual(annotation3.to_dict(), results3)
 
         # 4. ServiceExecutionAnnotation
         print ('\n4. Service Execution Annotation')
@@ -51,6 +56,16 @@ class MyTestCase(unittest.TestCase):
         annotation4 = ServiceExecutionAnnotation('Jupyter notebook', '1.0', 'User 1',
                                                  params, 'Supplier 1', 'A description',
                                                  'Serv1name')
+        results4 = {'field_descriptor':
+                        {'annotation': {'type': 'service_execution', 'name': 'Serv1name'},
+                                         'origin': 'Supplier 1', 'description': 'A description',
+                                         'fields': {'smiles': {'type': 'string',
+                                                               'description': 'standardized smiles'}
+                                             , 'ID': {'type': 'string',
+                                                      'description': 'Molecule Identifier'}}},
+                    'service': 'Jupyter notebook', 'service_version': '1.0',
+                    'service_user': 'User 1',
+                    'parameters': {'param1': 'p-value1', 'param2': 'p-value2'}}
         annotation4.add_field('smiles', 'string', 'standardized smiles')
         annotation4.add_field('ID', 'string', 'Molecule Identifier')
         params_yaml = annotation4.parameters_to_yaml()
@@ -58,6 +73,7 @@ class MyTestCase(unittest.TestCase):
         output_JSONData = json.dumps(annotation4.to_json(), indent=4)
         output_annotation4 = json.loads(output_JSONData)
         print(output_annotation4)
+        self.assertEqual(annotation4.to_dict(), results4)
 
         # 5. Add annotations to Metadata
         print ('\n5. Add annotations to Metadata')
@@ -65,20 +81,16 @@ class MyTestCase(unittest.TestCase):
         metadata.add_annotation(annotation2)
         metadata.add_annotation(annotation3)
         metadata.add_annotation(annotation4)
-        output_JSONData = json.dumps(metadata.to_json(), indent=4)
-        output_json = json.loads(output_JSONData)
-        print(output_json)
+        self.assertEqual(len(metadata.to_dict()['annotations']), 4)
+        print('\nok')
 
         # 6. Get annotations from Metadata
         print ('\n6. Get annotations from Metadata')
-        output_obj = metadata.get_annotation('label1name')
-        output_JSONData = json.dumps(output_obj.to_json(), indent=4)
-        output_json = json.loads(output_JSONData)
-        print(output_json)
-        output_obj = metadata.get_annotation('label2')
-        output_JSONData = json.dumps(output_obj.to_json(), indent=4)
-        output_json = json.loads(output_JSONData)
-        print(output_json)
+        output_obj1 = metadata.get_annotation('label1name')
+        output_obj2 = metadata.get_annotation('label2')
+        self.assertEqual(output_obj1.to_dict(), results1)
+        self.assertEqual(output_obj2.to_dict(), results2)
+        print('\nok')
 
         # 7. Remove annotation from Metadata
         print ('\n7. Remove annotations from Metadata')
@@ -86,6 +98,7 @@ class MyTestCase(unittest.TestCase):
         output_JSONData = json.dumps(metadata.to_json(), indent=4)
         output_json = json.loads(output_JSONData)
         print(output_json)
+        self.assertEqual(len(metadata.to_dict()['annotations']), 3)
 
         # 8. Simulate restoring metadata (via json) by pickling
         print ('\n8. Pickle and Unpickle metatdata')

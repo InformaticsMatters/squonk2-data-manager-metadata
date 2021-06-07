@@ -78,6 +78,14 @@ class Metadata:
     def to_pickle(self):
         return jsonpickle.encode(self)
 
+    def to_dict(self):
+        """Return principle data items in the form of a dictionary
+        """
+        return {"name": self.name,
+                "description": self.description,
+                "created_by": self.created_by,
+                "annotations": self.annotations}
+
 
 class Annotation(ABC):
     """Class Annotation - Abstract Base Class to enable annotation functionality
@@ -101,6 +109,21 @@ class Annotation(ABC):
 
     def set_last_updated(self):
         self.last_updated = datetime.datetime.now()
+
+    def set_name(self, name: str):
+        self.name = name
+
+    def get_name(self):
+        return self.name
+
+    def get_type(self):
+        return self.type
+
+    def to_dict(self):
+        """Return principle data items in the form of a dictionary
+        """
+        return {"type": self.type,
+                "name": self.name}
 
     def to_json(self):
         """ Serialize class to JSON
@@ -131,7 +154,10 @@ class LabelAnnotation(Annotation):
         super().__init__(self._type, name)
 
     def to_dict(self):
-        return {"label": self.label, "value": self.value}
+        """Return principle data items in the form of a dictionary
+        """
+        return {"annotation": super().to_dict(), "label": self.label,
+                "value": self.value}
 
 
 class FieldDescriptorAnnotation(Annotation):
@@ -177,6 +203,12 @@ class FieldDescriptorAnnotation(Annotation):
 
         return json.dumps(json_dict, default=json_default)
 
+    def to_dict(self):
+        """Return principle data items in the form of a dictionary
+        """
+        return {"annotation": super().to_dict(), "origin": self.origin,
+                "description": self.description, "fields": self.fields}
+
 
 class ServiceExecutionAnnotation(FieldDescriptorAnnotation):
     """Class FieldAnnotation
@@ -205,6 +237,14 @@ class ServiceExecutionAnnotation(FieldDescriptorAnnotation):
 
     def parameters_to_yaml(self):
         return yaml.dump(self.parameters)
+
+    def to_dict(self):
+        """Return principle data items in the form of a dictionary
+        """
+        return {"field_descriptor": super().to_dict(),
+                "service": self.service, "service_version": self.service_version,
+                "service_user": self.service_user,
+                "parameters": self.parameters}
 
 
 if __name__ == "__main__":
