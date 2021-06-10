@@ -13,7 +13,7 @@ class MyTestCase(unittest.TestCase):
         print ('1. Metadata')
         annotations_list = []
         metadata = Metadata('test','test description','bob',annotations_list)
-        results_metadata = {'name': 'test', 'description': 'test description',
+        results_metadata = {'dataset_name': 'test', 'description': 'test description',
                             'created_by': 'bob', 'annotations': []}
         self.assertEqual(metadata.to_dict(), results_metadata)
         print('\nok')
@@ -31,20 +31,14 @@ class MyTestCase(unittest.TestCase):
 
         # 3. FieldDescriptorAnnotation
         print ('\n3. Field Description Annotation')
-        annotation3 = FieldDescriptorAnnotation('Supplier 1', 'A description', 'Dataset1')
+        fields = {'smiles': {'type': 'string', 'description': 'standardized smiles'},
+                  'ID': {'type': 'string', 'description': 'Molecule Identifier'}}
+        annotation3 = FieldDescriptorAnnotation('Supplier 1', 'A description', fields, 'Dataset1')
         results3 = {'annotation': {'type': 'field_descriptor', 'name': 'Dataset1'},
                     'origin': 'Supplier 1', 'description': 'A description',
                     'fields': {'smiles': {'type': 'string',
                                           'description': 'standardized smiles'},
                                'ID': {'type': 'string', 'description': 'Molecule Identifier'}}}
-        annotation3.add_field('smiles', 'string', 'standardized smiles')
-        annotation3.add_field('ID', 'string', 'Molecule Identifier')
-        annotation3.add_field('extra', 'string', 'extra field')
-        field2 = annotation3.get_field('ID')
-        print(field2)
-        field3 = annotation3.get_field('extra')
-        print(field3)
-        annotation3.remove_field('extra')
         output_JSONData = json.dumps(annotation3.to_json(), indent=4)
         output_json = json.loads(output_JSONData)
         print(output_json)
@@ -54,7 +48,7 @@ class MyTestCase(unittest.TestCase):
         print ('\n4. Service Execution Annotation')
         params = {'param1': 'p-value1', 'param2': 'p-value2'}
         annotation4 = ServiceExecutionAnnotation('Jupyter notebook', '1.0', 'User 1',
-                                                 params, 'Supplier 1', 'A description',
+                                                 params, 'Supplier 1', 'A description', fields,
                                                  'Serv1name')
         results4 = {'field_descriptor':
                         {'annotation': {'type': 'service_execution', 'name': 'Serv1name'},
@@ -66,8 +60,6 @@ class MyTestCase(unittest.TestCase):
                     'service': 'Jupyter notebook', 'service_version': '1.0',
                     'service_user': 'User 1',
                     'parameters': {'param1': 'p-value1', 'param2': 'p-value2'}}
-        annotation4.add_field('smiles', 'string', 'standardized smiles')
-        annotation4.add_field('ID', 'string', 'Molecule Identifier')
         params_yaml = annotation4.parameters_to_yaml()
         print (params_yaml)
         output_JSONData = json.dumps(annotation4.to_json(), indent=4)

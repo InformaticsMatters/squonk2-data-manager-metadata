@@ -33,7 +33,7 @@ class Metadata:
     dataset.
 
     """
-    name: str = ''
+    dataset_name: str = ''
     description: str = ''
     created: datetime = 0
     last_updated: datetime = 0
@@ -41,10 +41,14 @@ class Metadata:
     metadata_version: str = ''
     annotations: list = []
 
-    def __init__(self, name: str, description: str, created_by: str, annotations: list):
-        self.name = name
+    def __init__(self, dataset_name: str, description: str, created_by: str, annotations: list):
+        assert dataset_name
+        assert description
+        assert created_by
+
+        self.dataset_name = dataset_name
         self.description = description
-        self.created = datetime.datetime.now()
+        self.created = datetime.datetime.utcnow()
         self.created_by = created_by
         self.metadata_version = metadata_version()
         self.annotations = annotations
@@ -53,7 +57,7 @@ class Metadata:
         """ Add a serialized annotation to the annotation list
         """
         self.annotations.append(annotation)
-        self.last_updated = datetime.datetime.now()
+        self.last_updated = datetime.datetime.utcnow()
 
     def remove_annotation(self, name: str):
         """ Remove an annotation from the annotation list
@@ -61,7 +65,7 @@ class Metadata:
         for annotation in self.annotations:
             if annotation.name == name:
                 self.annotations.remove(annotation)
-        self.last_updated = datetime.datetime.now()
+        self.last_updated = datetime.datetime.utcnow()
 
     def get_annotation(self, name: str):
         """ Get an annotation from the annotation list identified by the name.
@@ -81,7 +85,7 @@ class Metadata:
     def to_dict(self):
         """Return principle data items in the form of a dictionary
         """
-        return {"name": self.name,
+        return {"dataset_name": self.dataset_name,
                 "description": self.description,
                 "created_by": self.created_by,
                 "annotations": self.annotations}
@@ -102,13 +106,15 @@ class Annotation(ABC):
 
     @abstractmethod
     def __init__(self, annotation_type: str, name: str):
+        assert annotation_type
+
         self.type = annotation_type
         self.name = name
-        self.created = datetime.datetime.now()
+        self.created = datetime.datetime.utcnow()
         self.annotation_version = annotation_version()
 
     def set_last_updated(self):
-        self.last_updated = datetime.datetime.now()
+        self.last_updated = datetime.datetime.utcnow()
 
     def set_name(self, name: str):
         self.name = name
@@ -145,6 +151,7 @@ class LabelAnnotation(Annotation):
     value: str = ''
 
     def __init__(self, label: str, value: str, name: str = None):
+        assert label
         self.label = label
         self.value = value
 
@@ -171,9 +178,10 @@ class FieldDescriptorAnnotation(Annotation):
     description: str = ''
     fields: dict = {}
 
-    def __init__(self, origin: str, description: str, name: str):
+    def __init__(self, origin: str, description: str, fields: dict, name: str):
         self.origin = origin
         self.description = description
+        self.fields = fields
         super().__init__(self._type, name)
 
     def add_field(self, field_name: str, field_type: str, description: str):
@@ -197,10 +205,7 @@ class FieldDescriptorAnnotation(Annotation):
     def to_json(self):
         """ Serialize class to JSON
         """
-        json_dict = {}
-        json_dict['annotation'] = json.loads(super().to_json())
-        json_dict['fields'] = self.fields
-
+        json_dict = {'annotation': json.loads(super().to_json()), 'fields': self.fields}
         return json.dumps(json_dict, default=json_default)
 
     def to_dict(self):
@@ -228,12 +233,15 @@ class ServiceExecutionAnnotation(FieldDescriptorAnnotation):
                  parameters: dict,
                  origin: str,
                  description: str,
+                 fields: dict,
                  name: str):
+        assert service
+
         self.service = service
         self.service_version = service_version
         self.service_user = service_user
         self.parameters = parameters
-        super().__init__(origin, description, name)
+        super().__init__(origin, description, fields, name)
 
     def parameters_to_yaml(self):
         return yaml.dump(self.parameters)
