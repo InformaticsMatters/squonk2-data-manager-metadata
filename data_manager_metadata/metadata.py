@@ -53,6 +53,18 @@ class Metadata:
         self.metadata_version = metadata_version()
         self.annotations = annotations
 
+    def get_dataset_name(self):
+        return self.dataset_name
+
+    def get_description(self):
+        return self.description
+
+    def get_created_by(self):
+        return self.created_by
+
+    def get_metadata_version(self):
+        return self.metadata_version
+
     def add_annotation(self, annotation: object):
         """ Add a serialized annotation to the annotation list
         """

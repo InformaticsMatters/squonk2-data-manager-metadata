@@ -16,6 +16,10 @@ class MyTestCase(unittest.TestCase):
         results_metadata = {'dataset_name': 'test', 'description': 'test description',
                             'created_by': 'bob', 'annotations': []}
         self.assertEqual(metadata.to_dict(), results_metadata)
+        self.assertEqual(metadata.get_dataset_name(), results_metadata['dataset_name'])
+        self.assertEqual(metadata.get_description(), results_metadata['description'])
+        self.assertEqual(metadata.get_created_by(), results_metadata['created_by'])
+        self.assertEqual(metadata.get_metadata_version(), '0.0.1')
         print('\nok')
 
         # 2. LabelAnnotation
@@ -28,6 +32,7 @@ class MyTestCase(unittest.TestCase):
                     'label': 'label2', 'value': 'value2'}
         self.assertEqual(annotation1.to_dict(), results1)
         self.assertEqual(annotation2.to_dict(), results2)
+        print('\nok')
 
         # 3. FieldDescriptorAnnotation
         print ('\n3. Field Description Annotation')
@@ -43,6 +48,7 @@ class MyTestCase(unittest.TestCase):
         output_json = json.loads(output_JSONData)
         print(output_json)
         self.assertEqual(annotation3.to_dict(), results3)
+        print('\nok')
 
         # 4. ServiceExecutionAnnotation
         print ('\n4. Service Execution Annotation')
@@ -66,6 +72,7 @@ class MyTestCase(unittest.TestCase):
         output_annotation4 = json.loads(output_JSONData)
         print(output_annotation4)
         self.assertEqual(annotation4.to_dict(), results4)
+        print('\nok')
 
         # 5. Add annotations to Metadata
         print ('\n5. Add annotations to Metadata')
@@ -91,6 +98,7 @@ class MyTestCase(unittest.TestCase):
         output_json = json.loads(output_JSONData)
         print(output_json)
         self.assertEqual(len(metadata.to_dict()['annotations']), 3)
+        print('\nok')
 
         # 8. Simulate restoring metadata (via json) by pickling
         print ('\n8. Pickle and Unpickle metatdata')
@@ -103,6 +111,7 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(output_json, upickled_output_json)
         print ('Metadata Output Equal')
+        print('\nok')
 
         # 9. Simulate restoring an annotation (via json) by pickling
         print ('\n9. Pickle and Unpickle annotation')
@@ -115,6 +124,7 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(output_annotation4, upickled_output_json)
         print ('Annotation Output Equal')
+        print('\nok')
 
 
 if __name__ == '__main__':
