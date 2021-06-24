@@ -119,6 +119,7 @@ class Metadata:
         # Remove from parameter list
         del annotation_row['type']
         del annotation_row['created']
+        del annotation_row['annotation_version']
 
         # Create new annotation for metadata using rest of original parameters
         # and reset created datetime. This also effectively validates the content.
@@ -144,6 +145,7 @@ class Metadata:
                 "created": self.created.isoformat(),
                 "last_updated": self.last_updated.isoformat(),
                 "created_by": self.created_by,
+                "metadata_version": self.metadata_version,
                 "annotations": [anno.to_dict() for anno in self.annotations]}
 
     def to_json(self):
@@ -180,7 +182,8 @@ class Annotation(ABC):
         """Return principle data items in the form of a dictionary
         """
         return {"type": self.__class__.__name__,
-                "created": self.created.isoformat()}
+                "created": self.created.isoformat(),
+                "annotation_version": self.annotation_version}
 
     def to_json(self):
         """ Serialize class to JSON
@@ -238,7 +241,8 @@ class LabelAnnotation(Annotation):
     def to_dict(self):
         """Return principle data items in the form of a dictionary
         """
-        return {**super().to_dict(), "label": self.label,
+        return {**super().to_dict(),
+                "label": self.label,
                 "value": self.value}
 
 
