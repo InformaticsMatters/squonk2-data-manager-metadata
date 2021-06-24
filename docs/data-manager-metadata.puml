@@ -1,33 +1,46 @@
 @startuml
 class Metadata {
-    name : String
+    *dataset_name : String
+    *dataset_uuid : String
+    *created_by : String
     description : String
     created : timestamp
     last_updated : timestamp
-    created_by : String
     annotations : list
-    add_annotation(obj)
-    remove_annotation(name)
-    get_annotation(name)
+    get/set_dataset_name()
+    get/set_dataset_uuid()
+    get/set_dataset_created_by()
+    get/set_dataset_description()
+    get_annotation(position) : object
+    add_annotation(object)
+    get_annotations() : json
+    add_annotations(json)
+    to_dict()
     to_json()
-    to_pickle()
 }
 note right: Metadata is intended\nto be stored with a dataset.\nIt will be a collection of\ndataset descriptive/\nstructural metadata and annotations.
 
 abstract class Annotation {
     type : String
-    name : String
     created : timestamp
-    last_updated : timestamp
-    set_last_updated()
+    to_dict()
     to_json()
-    to_pickle()
 }
-note right: Annotation types that can be\n added to the metadata
+note right: Annotation types that can be\nadded to the metadata
+
+class PropertyChangeAnnotation {
+    *property : String
+    previous_value : String
+    to_dict()
+}
+note left: Annotation added\nwhen Metadata\nproperty has changed.
 
 class LabelAnnotation {
-    label : String
+    *label : String
     value : String
+    active : Boolean
+    set_value()
+    to_dict()
 }
 
 class TagAnnotation {
@@ -37,29 +50,40 @@ class TagAnnotation {
     set_columns()
     get_columns()
     add_tags(text)
+    to_dict()
 }
+note left: Not currently\nimplemented
 
-class FieldDescriptorAnnotation {
+class FieldsDescriptorAnnotation {
     origin : String
     description : String
-    fields : Dict
-    add_field(name, type, description)
-    remove_field(name)
-    get_field(name)
-    to_json()
+    properties : Dict
+    get/set_origin()
+    get/set_description()
+    add_property(name, active, type, description)
+    get_property(name) : dict
+    add_properties(json)
+    get_properties() : json
+    to_dict()
 }
 
 class ServiceExecutionAnnotation {
-    service : String
+    *service : String
     service_version : String
-    user : String
-    parameters : Dict
+    service_user : String
+    service_parameters : Dict
+    get/set_service()
+    get/set_version()
+    get/set_user()
+    get/set_parameters()
     to_yaml()
+    to_dict()
 }
 
 Metadata  |o..|{   Annotation
 Annotation <|-- LabelAnnotation
+Annotation <|-- PropertyChangeAnnotation
+Annotation <|-- FieldsDescriptorAnnotation
+FieldsDescriptorAnnotation <|-- ServiceExecutionAnnotation
 Annotation <|-- TagAnnotation
-Annotation <|-- FieldDescriptorAnnotation
-FieldDescriptorAnnotation <|-- ServiceExecutionAnnotation
 @enduml

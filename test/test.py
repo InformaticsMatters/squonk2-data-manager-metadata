@@ -3,128 +3,119 @@ import json
 import jsonpickle
 from data_manager_metadata.metadata import (Metadata,
                                             LabelAnnotation,
-                                            FieldDescriptorAnnotation,
+                                            FieldsDescriptorAnnotation,
                                             ServiceExecutionAnnotation)
 
 class MyTestCase(unittest.TestCase):
 
-    def test_metadata(self):
-        # 1. Metadata
-        print ('1. Metadata')
-        annotations_list = []
-        metadata = Metadata('test','test description','bob',annotations_list)
-        results_metadata = {'dataset_name': 'test', 'description': 'test description',
-                            'created_by': 'bob', 'annotations': []}
-        self.assertEqual(metadata.to_dict(), results_metadata)
-        self.assertEqual(metadata.get_dataset_name(), results_metadata['dataset_name'])
-        self.assertEqual(metadata.get_description(), results_metadata['description'])
-        self.assertEqual(metadata.get_created_by(), results_metadata['created_by'])
-        self.assertEqual(metadata.get_metadata_version(), '0.0.1')
-        print('\nok')
+    metadata = Metadata('test', '0000-1111', '', 'Bob')
 
-        # 2. LabelAnnotation
-        print ('\n2. Label Annotation')
-        annotation1 = LabelAnnotation('label1', 'value1', 'label1name')
-        results1 = {'annotation': {'name': 'label1name', 'type': 'label'},
-                    'label': 'label1', 'value': 'value1'}
-        annotation2 = LabelAnnotation('label2', 'value2')
-        results2 = {'annotation': {'name': 'label2', 'type': 'label'},
-                    'label': 'label2', 'value': 'value2'}
-        self.assertEqual(annotation1.to_dict(), results1)
-        self.assertEqual(annotation2.to_dict(), results2)
-        print('\nok')
+    def test_01_metadata(self):
+        print ('1.1 Metadata')
+        results_metadata = {'dataset_name': 'test', 'dataset_uuid': '0000-1111', 'description': '',
+                            'created_by': 'Bob', 'annotations': []}
+        self.assertEqual(self.metadata.get_dataset_name(), results_metadata['dataset_name'])
+        self.assertEqual(self.metadata.get_dataset_uuid(), results_metadata['dataset_uuid'])
+        self.assertEqual(self.metadata.get_description(), results_metadata['description'])
+        self.assertEqual(self.metadata.get_created_by(), results_metadata['created_by'])
+        self.assertEqual(self.metadata.get_metadata_version(), '0.0.1')
+        print('\nTest 1.1 ok')
 
-        # 3. FieldDescriptorAnnotation
-        print ('\n3. Field Description Annotation')
-        fields = {'smiles': {'type': 'string', 'description': 'standardized smiles'},
-                  'ID': {'type': 'string', 'description': 'Molecule Identifier'}}
-        annotation3 = FieldDescriptorAnnotation('Supplier 1', 'A description', fields, 'Dataset1')
-        results3 = {'annotation': {'type': 'field_descriptor', 'name': 'Dataset1'},
-                    'origin': 'Supplier 1', 'description': 'A description',
-                    'fields': {'smiles': {'type': 'string',
-                                          'description': 'standardized smiles'},
-                               'ID': {'type': 'string', 'description': 'Molecule Identifier'}}}
+        print ('1.2. Metadata Annotations')
+        self.metadata.set_description('test description')
+        self.metadata.set_created_by('Dick')
+        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 2)
+
+        print (self.metadata.to_json())
+        print('\nTest 1.2 ok')
+
+    def test_02_label_annotations(self):
+        print ('\n2.1. Label Annotation')
+        annotation1 = LabelAnnotation('label1', 'value1')
+        results1 = {'type': 'LabelAnnotation', 'label': 'label1', 'value': 'value1'}
+        self.assertEqual(annotation1.__class__.__name__, results1['type'])
+        self.assertEqual(annotation1.get_label(), results1['label'])
+        print('\nTest 2.1 ok')
+
+        print ('\n2.2. Label Annotation to Metadata')
+        self.metadata.add_annotation(annotation1)
+        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 3)
+        print (self.metadata.to_json())
+        print('\nTest 2.2 ok')
+
+
+    def test_03_fields_annotations(self):
+        print ('\n3.1. FieldsDescriptor Annotation')
+        input_properties = {'smiles': {'type': 'string', 'description': 'standardized smiles', 'active': True},
+                  'ID': {'type': 'string', 'description': 'Molecule Identifier', 'active': True}}
+        annotation3 = FieldsDescriptorAnnotation('Supplier 1', 'A description', input_properties)
+        ouput_properties = json.loads(annotation3.get_properties())
+        self.assertEqual(ouput_properties, input_properties)
+        self.assertEqual(annotation3.get_property('smiles'), input_properties['smiles'])
+        self.assertEqual(annotation3.get_property('ID'), input_properties['ID'])
+
+        annotation3.add_property('smiles',prop_type='smiles')
+        self.assertNotEqual(annotation3.get_property('smiles'), input_properties['smiles'])
+        annotation3.add_property('ID',active=False)
+        self.assertNotEqual(annotation3.get_property('ID'), input_properties['ID'])
+        self.assertEqual(len(json.loads(annotation3.get_properties(False))), 1)
+
         output_JSONData = json.dumps(annotation3.to_json(), indent=4)
         output_json = json.loads(output_JSONData)
         print(output_json)
-        self.assertEqual(annotation3.to_dict(), results3)
-        print('\nok')
+        print('\nTest 3.1 ok')
 
-        # 4. ServiceExecutionAnnotation
+        print ('\n3.2. Fields Annotation to Metadata')
+        self.metadata.add_annotation(annotation3)
+        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 4)
+        print('\nTest 3.2 ok')
+
+        print ('\n3.3. Transfer Fields Annotation to new Fields Annotation')
+        annotation3_3 = FieldsDescriptorAnnotation('Supplier 1', 'A description', "")
+        # Transfer active only
+        annotation3_3.add_properties(annotation3.get_properties())
+        self.assertEqual(annotation3.get_properties(), annotation3_3.get_properties())
+        # Transfer active and inactive
+        annotation3_3.add_properties(annotation3.get_properties(True))
+        self.assertEqual(annotation3.get_properties(True), annotation3_3.get_properties(True))
+
+        print('\nTest 3.3 ok')
+
+
+    def test_04_service_execution(self):
         print ('\n4. Service Execution Annotation')
         params = {'param1': 'p-value1', 'param2': 'p-value2'}
+        input_properties = {'smiles': {'type': 'string', 'description': 'standardized smiles', 'active': True},
+                  'ID': {'type': 'string', 'description': 'Molecule Identifier', 'active': True}}
         annotation4 = ServiceExecutionAnnotation('Jupyter notebook', '1.0', 'User 1',
-                                                 params, 'Supplier 1', 'A description', fields,
-                                                 'Serv1name')
-        results4 = {'field_descriptor':
-                        {'annotation': {'type': 'service_execution', 'name': 'Serv1name'},
-                                         'origin': 'Supplier 1', 'description': 'A description',
-                                         'fields': {'smiles': {'type': 'string',
-                                                               'description': 'standardized smiles'}
-                                             , 'ID': {'type': 'string',
-                                                      'description': 'Molecule Identifier'}}},
-                    'service': 'Jupyter notebook', 'service_version': '1.0',
-                    'service_user': 'User 1',
-                    'parameters': {'param1': 'p-value1', 'param2': 'p-value2'}}
-        params_yaml = annotation4.parameters_to_yaml()
-        print (params_yaml)
-        output_JSONData = json.dumps(annotation4.to_json(), indent=4)
-        output_annotation4 = json.loads(output_JSONData)
-        print(output_annotation4)
-        self.assertEqual(annotation4.to_dict(), results4)
-        print('\nok')
+                                                 params, 'Supplier 1', 'A description',
+                                                 input_properties)
+        self.assertEqual(annotation4.get_service(), 'Jupyter notebook')
+        self.assertEqual(annotation4.get_service_parameters(), params)
+        print('\nTest 4.1 ok')
 
-        # 5. Add annotations to Metadata
-        print ('\n5. Add annotations to Metadata')
-        metadata.add_annotation(annotation1)
-        metadata.add_annotation(annotation2)
-        metadata.add_annotation(annotation3)
-        metadata.add_annotation(annotation4)
-        self.assertEqual(len(metadata.to_dict()['annotations']), 4)
-        print('\nok')
+        print ('\n4.2. Service Execution Annotation to Metadata')
+        self.metadata.add_annotation(annotation4)
+        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 5)
+        print('\nTest 4.2 ok')
 
-        # 6. Get annotations from Metadata
-        print ('\n6. Get annotations from Metadata')
-        output_obj1 = metadata.get_annotation('label1name')
-        output_obj2 = metadata.get_annotation('label2')
-        self.assertEqual(output_obj1.to_dict(), results1)
-        self.assertEqual(output_obj2.to_dict(), results2)
-        print('\nok')
+    def test_05_load_annotations_in_new_metadata(self):
+        print ('\n5. Get annotations from Metadata and add to new Metadata')
+        annotations_old = self.metadata.get_annotations()
+        metadata_new = Metadata('New dataset', '0000-2222',
+                                'Created from the first dataset by a workflow', 'Harry')
+        metadata_new.add_annotations(annotations_old)
+        annotations_new = metadata_new.get_annotations()
+        self.assertEqual(annotations_old, annotations_new)
+        print('\nTest 5 ok')
 
-        # 7. Remove annotation from Metadata
-        print ('\n7. Remove annotations from Metadata')
-        metadata.remove_annotation('label1name')
-        output_JSONData = json.dumps(metadata.to_json(), indent=4)
-        output_json = json.loads(output_JSONData)
-        print(output_json)
-        self.assertEqual(len(metadata.to_dict()['annotations']), 3)
-        print('\nok')
-
-        # 8. Simulate restoring metadata (via json) by pickling
-        print ('\n8. Pickle and Unpickle metatdata')
-        metapickled = metadata.to_pickle()
-        print(metapickled)
+    def test_06_pickle_and_unpickle_metadata (self):
+        print ('\n6. Pickle and Unpickle metatdata for saving object into dataset')
+        metapickled = jsonpickle.encode(self.metadata)
         metaunpickled = jsonpickle.decode(metapickled)
-        upickled_output_JSONData = json.dumps(metaunpickled.to_json(), indent=4)
-        upickled_output_json = json.loads(upickled_output_JSONData)
-        print(upickled_output_json)
-
-        self.assertEqual(output_json, upickled_output_json)
+        self.assertEqual(self.metadata.to_json(), metaunpickled.to_json())
         print ('Metadata Output Equal')
-        print('\nok')
-
-        # 9. Simulate restoring an annotation (via json) by pickling
-        print ('\n9. Pickle and Unpickle annotation')
-        annopickled = annotation4.to_pickle()
-        print(annopickled)
-        announpickled = jsonpickle.decode(annopickled)
-        upickled_output_JSONData = json.dumps(announpickled.to_json(), indent=4)
-        upickled_output_json = json.loads(upickled_output_JSONData)
-        print(upickled_output_json)
-
-        self.assertEqual(output_annotation4, upickled_output_json)
-        print ('Annotation Output Equal')
-        print('\nok')
+        print('\nTest 6 ok')
 
 
 if __name__ == '__main__':
