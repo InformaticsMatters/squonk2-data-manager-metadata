@@ -301,7 +301,7 @@ class FieldsDescriptorAnnotation(Annotation):
     description: str = ''
     properties: dict = {}
 
-    def __init__(self, origin: str = '', description: str = '', properties: dict = {}):
+    def __init__(self, origin: str = '', description: str = '', properties: dict = None):
         self.origin = origin
         self.description = description
         if properties:
