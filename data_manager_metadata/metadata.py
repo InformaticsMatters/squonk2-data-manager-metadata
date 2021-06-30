@@ -9,6 +9,8 @@ from abc import ABC, abstractmethod
 
 _METADATA_VERSION: str = '0.0.1'
 _ANNOTATION_VERSION: str = '0.0.1'
+_SCHEMA: str = 'http://json-schema.org/draft/2019-09/schema#'
+_SCHEMA_ID: str = 'https://example.com/product.schema.json'
 
 
 def metadata_version() -> str:
@@ -89,7 +91,7 @@ class Metadata:
         return self.metadata_version
 
     def get_annotation(self, pos: int):
-        """ Get an annotation from the annotation list identified by the name.
+        """ Get an annotation from the annotation list identified by the position.
         """
         return self.annotations[pos]
 
@@ -99,10 +101,15 @@ class Metadata:
         self.annotations.append(annotation)
         self.last_updated = datetime.datetime.utcnow()
 
-    def get_annotations(self):
+    def get_annotations_dict(self):
         """ Get a list of all annotations from the annotation list in json format.
         """
-        return json.dumps([anno.to_dict() for anno in self.annotations])
+        return [anno.to_dict() for anno in self.annotations]
+
+    def get_annotations_json(self):
+        """ Get a list of all annotations from the annotation list in json format.
+        """
+        return json.dumps(self.get_annotations_dict())
 
     def _create_annotation(self, annotation_row: dict):
         """ Creates an annotation object based on the dictionary and add to the annotations list.
@@ -147,6 +154,38 @@ class Metadata:
                 "created_by": self.created_by,
                 "metadata_version": self.metadata_version,
                 "annotations": [anno.to_dict() for anno in self.annotations]}
+
+    def get_json_schema(self):
+        """ Returns the latest complete FieldsDescriptor as a dict of the json schema
+            as defined in https://json-schema.org/.
+        """
+
+        # Process all FieldDescriptor Annotations in the Annotations list in order
+        # to retrieve all of the properties in the dataset. Add these to a single
+        # new FieldDescriptor that will have compilation of all properties.
+        # We can then extract the active properties from the final compiled FieldDescriptor to
+        # use in the json schema output.
+        comp_descriptor = FieldsDescriptorAnnotation()
+        for annotation in self.annotations:
+            if annotation.get_type() is 'FieldsDescriptorAnnotation':
+                comp_descriptor.add_properties(annotation.get_properties())
+        properties = {}
+        required = []
+
+        for prop, value in comp_descriptor.get_properties(False).items():
+            properties[prop] = {'type': value['type'], 'description': value['description']}
+            if value['required']:
+                required.append(prop)
+
+        schema = {'$schema': _SCHEMA,
+                  '$id': _SCHEMA_ID,
+                  'title': self.dataset_name,
+                  'description': self.description,
+                  "type": "object",
+                  'properties': properties,
+                  'required': required}
+
+        return schema
 
     def to_json(self):
         """ Serialize class to JSON
@@ -222,28 +261,31 @@ class LabelAnnotation(Annotation):
     """
     label: str = ''
     value: str = ''
+    active: bool
 
-    def __init__(self, label: str, value: str):
+    def __init__(self, label: str, value: str, active: bool = True):
         assert label
         self.label = label
         self.value = value
+        self.active = active
         super().__init__()
 
     def get_label(self):
         return self.label
 
-    def get_valuel(self):
+    def get_value(self):
         return self.value
 
-    def set_valuel(self, value):
-        self.value = value
+    def get_active(self):
+        return self.active
 
     def to_dict(self):
         """Return principle data items in the form of a dictionary
         """
         return {**super().to_dict(),
                 "label": self.label,
-                "value": self.value}
+                "value": self.value,
+                "active": self.active}
 
 
 class FieldsDescriptorAnnotation(Annotation):
@@ -259,7 +301,7 @@ class FieldsDescriptorAnnotation(Annotation):
     description: str = ''
     properties: dict = {}
 
-    def __init__(self, origin: str, description: str, properties: dict):
+    def __init__(self, origin: str = '', description: str = '', properties: dict = {}):
         self.origin = origin
         self.description = description
         if properties:
@@ -283,18 +325,22 @@ class FieldsDescriptorAnnotation(Annotation):
     def add_property(self, prop_name: str,
                      active: bool = True,
                      prop_type: str = None,
-                     description: str = None):
+                     description: str = None,
+                     required: bool = None):
         """ Add an individual property to the properties list
         """
         assert prop_name
         if prop_name not in self.properties:
-            self.properties[prop_name] = {'type': '', 'description': '', 'active': False}
+            self.properties[prop_name] = {'type': '', 'description': '', 'required': False,
+                                          'active': False}
 
         self.properties[prop_name]['active'] = active
         if prop_type:
             self.properties[prop_name]['type'] = prop_type
         if description:
             self.properties[prop_name]['description'] = description
+        if required:
+            self.properties[prop_name]['required'] = required
 
     def get_property(self, prop_name: str):
         """ Get a property from the properties list identified by the name.
@@ -302,27 +348,27 @@ class FieldsDescriptorAnnotation(Annotation):
         return self.properties[prop_name]
 
     def get_properties(self, get_all:bool = False):
-        """ Get (all/only active) properties from the property list in json format.
+        """ Get (all/only active) properties from the property list in dict format.
         """
         if get_all:
-            return json.dumps(self.properties)
+            return self.properties
         else:
             # Return active properties only
             active_properties = {}
             for prop, value in self.properties.items():
                 if value['active']:
                     active_properties[prop]=value
-            return json.dumps(active_properties)
+            return active_properties
 
-    def add_properties(self, properties: json):
-        """ Process a list of additions/updates to the properties list
+    def add_properties(self, new_properties: dict):
+        """ Add a dictionary of additions/updates to the properties list
             properties.
         """
         # validate the json.
-        new_properties = json.loads(properties)
         for prop, values in new_properties.items():
-            # unpack the indvidual lines for processing.
-            self.add_property(prop, values['active'], values['type'], values['description'])
+            # unpack the individual lines for processing.
+            self.add_property(prop, values['active'], values['type'],
+                              values['description'], values['required'])
 
     def to_dict(self):
         """Return principle data items in the form of a dictionary

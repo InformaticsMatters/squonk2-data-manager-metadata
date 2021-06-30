@@ -46,19 +46,24 @@ class MyTestCase(unittest.TestCase):
 
     def test_03_fields_annotations(self):
         print ('\n3.1. FieldsDescriptor Annotation')
-        input_properties = {'smiles': {'type': 'string', 'description': 'standardized smiles', 'active': True},
-                  'ID': {'type': 'string', 'description': 'Molecule Identifier', 'active': True}}
+        input_properties = {'smiles': {'type': 'string', 'description': 'standardized smiles',
+                                       'required': True, 'active': True},
+                            'uuid': {'type': 'uuid', 'description': 'Molecule Identifier',
+                                   'required': True, 'active': True},
+                            'id': {'type': 'string', 'description': 'File Identifier',
+                                   'required': False, 'active': True},
+                            }
         annotation3 = FieldsDescriptorAnnotation('Supplier 1', 'A description', input_properties)
-        ouput_properties = json.loads(annotation3.get_properties())
+        ouput_properties = annotation3.get_properties()
         self.assertEqual(ouput_properties, input_properties)
         self.assertEqual(annotation3.get_property('smiles'), input_properties['smiles'])
-        self.assertEqual(annotation3.get_property('ID'), input_properties['ID'])
+        self.assertEqual(annotation3.get_property('uuid'), input_properties['uuid'])
 
         annotation3.add_property('smiles',prop_type='smiles')
         self.assertNotEqual(annotation3.get_property('smiles'), input_properties['smiles'])
-        annotation3.add_property('ID',active=False)
-        self.assertNotEqual(annotation3.get_property('ID'), input_properties['ID'])
-        self.assertEqual(len(json.loads(annotation3.get_properties(False))), 1)
+        annotation3.add_property('id',active=False)
+        self.assertNotEqual(annotation3.get_property('id'), input_properties['id'])
+        self.assertEqual(len(annotation3.get_properties(False)), 2)
 
         output_JSONData = json.dumps(annotation3.to_json(), indent=4)
         output_json = json.loads(output_JSONData)
@@ -101,11 +106,11 @@ class MyTestCase(unittest.TestCase):
 
     def test_05_load_annotations_in_new_metadata(self):
         print ('\n5. Get annotations from Metadata and add to new Metadata')
-        annotations_old = self.metadata.get_annotations()
+        annotations_old = self.metadata.get_annotations_json()
         metadata_new = Metadata('New dataset', '0000-2222',
                                 'Created from the first dataset by a workflow', 'Harry')
         metadata_new.add_annotations(annotations_old)
-        annotations_new = metadata_new.get_annotations()
+        annotations_new = metadata_new.get_annotations_json()
         self.assertEqual(annotations_old, annotations_new)
         print('\nTest 5 ok')
 
@@ -116,6 +121,22 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(self.metadata.to_json(), metaunpickled.to_json())
         print ('Metadata Output Equal')
         print('\nTest 6 ok')
+
+    def test_07_json_schema (self):
+        print ('\n7. Test json schema extract from FieldDescriptors')
+        expected_schema = {'$schema': 'http://json-schema.org/draft/2019-09/schema#',
+                           '$id': 'https://example.com/product.schema.json',
+                           'title': 'test', 'description': 'test description',
+                           'type': 'object',
+                           'properties':
+                               {'smiles': {'type': 'smiles', 'description': 'standardized smiles'},
+                                'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'}},
+                           'required': ['smiles', 'uuid']}
+        schema = (self.metadata.get_json_schema())
+        self.assertEqual(schema, expected_schema)
+        print ('Json Schema matches expected schema')
+        print('\nTest 7 ok')
+
 
 
 if __name__ == '__main__':

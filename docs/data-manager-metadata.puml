@@ -13,8 +13,10 @@ class Metadata {
     get/set_dataset_description()
     get_annotation(position) : object
     add_annotation(object)
-    get_annotations() : json
+    get_annotations_dict() : dict
+    get_annotations_json() : json
     add_annotations(json)
+    get_json_schema(): dict
     to_dict()
     to_json()
 }
@@ -39,7 +41,6 @@ class LabelAnnotation {
     *label : String
     value : String
     active : Boolean
-    set_value()
     to_dict()
 }
 
@@ -62,8 +63,8 @@ class FieldsDescriptorAnnotation {
     get/set_description()
     add_property(name, active, type, description)
     get_property(name) : dict
-    add_properties(json)
-    get_properties() : json
+    add_properties(dict)
+    get_properties() : dict
     to_dict()
 }
 
