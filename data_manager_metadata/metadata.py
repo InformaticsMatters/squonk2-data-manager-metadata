@@ -305,7 +305,7 @@ class FieldsDescriptorAnnotation(Annotation):
         self.origin = origin
         self.description = description
         if properties:
-            self.properties = copy.deepcopy(properties)
+            self.add_properties(properties)
         else:
             self.properties = {}
         super().__init__()

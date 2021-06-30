@@ -90,13 +90,18 @@ class MyTestCase(unittest.TestCase):
     def test_04_service_execution(self):
         print ('\n4. Service Execution Annotation')
         params = {'param1': 'p-value1', 'param2': 'p-value2'}
-        input_properties = {'smiles': {'type': 'string', 'description': 'standardized smiles', 'active': True},
-                  'ID': {'type': 'string', 'description': 'Molecule Identifier', 'active': True}}
+        input_properties = {'smiles': {'type': 'smiles', 'description': 'standardized smiles',
+                                       'required': True, 'active': True},
+                  'ID': {'type': 'string', 'description': 'Changed File Identifier',
+                         'required': False, 'active': True}}
         annotation4 = ServiceExecutionAnnotation('Jupyter notebook', '1.0', 'User 1',
                                                  params, 'Supplier 1', 'A description',
                                                  input_properties)
         self.assertEqual(annotation4.get_service(), 'Jupyter notebook')
         self.assertEqual(annotation4.get_service_parameters(), params)
+        output_JSONData = json.dumps(annotation4.to_json(), indent=4)
+        output_json = json.loads(output_JSONData)
+        print(output_json)
         print('\nTest 4.1 ok')
 
         print ('\n4.2. Service Execution Annotation to Metadata')
@@ -130,9 +135,12 @@ class MyTestCase(unittest.TestCase):
                            'type': 'object',
                            'properties':
                                {'smiles': {'type': 'smiles', 'description': 'standardized smiles'},
-                                'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'}},
+                                'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'},
+                                'ID': {'type': 'string', 'description': 'Changed File Identifier'}},
                            'required': ['smiles', 'uuid']}
         schema = (self.metadata.get_json_schema())
+        print(expected_schema )
+        print(schema)
         self.assertEqual(schema, expected_schema)
         print ('Json Schema matches expected schema')
         print('\nTest 7 ok')
