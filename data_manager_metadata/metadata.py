@@ -167,7 +167,7 @@ class Metadata:
         # use in the json schema output.
         comp_descriptor = FieldsDescriptorAnnotation()
         for annotation in self.annotations:
-            if annotation.get_type() is 'FieldsDescriptorAnnotation':
+            if annotation.get_type() == 'FieldsDescriptorAnnotation':
                 comp_descriptor.add_properties(annotation.get_properties())
         properties = {}
         required = []

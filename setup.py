@@ -33,7 +33,7 @@ setup(
     # This is different to the requirements.txt file
     install_requires=[
         'PyYAML>=5.3',
-        'jsonpickle>=1.4.2',
+        'jsonpickle>=2.0.0',
     ],
 
     # Supported Python versions

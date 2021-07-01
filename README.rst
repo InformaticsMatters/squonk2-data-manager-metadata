@@ -14,7 +14,7 @@ as a metadata framework for molecular datasets.
 Dependencies
 ************
 - PyYAML>=5.3
-- jsonpickle>=1.4.2
+- jsonpickle>=2.0.0
 
 
 Running the Unit Tests
