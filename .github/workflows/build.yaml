@@ -41,5 +41,8 @@ jobs:
       run: |
         pylint data_manager_metadata
         pyroma .
+    - name: Test
+      run: |
+        python -m unittest test.test
     - name: Build
       run: python setup.py bdist_wheel

@@ -7,6 +7,7 @@ coverage
 pylint
 pyroma
 setuptools == 56.2.0
+jsonpickle == 2.0.0
 
 # In order to run 'python setup.py bdist_wheel'...
 wheel == 0.36.2
