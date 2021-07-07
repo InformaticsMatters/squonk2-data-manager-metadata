@@ -147,7 +147,7 @@ class Metadata:
         """Return principle data items in the form of a dictionary
         """
         return {"dataset_name": self.dataset_name,
-                "dataset_uuid": self.dataset_uuid,
+                "dataset_id": self.dataset_uuid,
                 "description": self.description,
                 "created": self.created.isoformat(),
                 "last_updated": self.last_updated.isoformat(),
@@ -263,7 +263,7 @@ class LabelAnnotation(Annotation):
     value: str = ''
     active: bool
 
-    def __init__(self, label: str, value: str, active: bool = True):
+    def __init__(self, label: str, value: str = '', active: bool = True):
         assert label
         self.label = label
         self.value = value
@@ -326,13 +326,14 @@ class FieldsDescriptorAnnotation(Annotation):
                      active: bool = True,
                      prop_type: str = None,
                      description: str = None,
-                     required: bool = None):
+                     required: bool = None,
+                     semantic_type: str = ''):
         """ Add an individual property to the properties list
         """
         assert prop_name
         if prop_name not in self.properties:
             self.properties[prop_name] = {'type': '', 'description': '', 'required': False,
-                                          'active': False}
+                                          'active': False, 'semantic_type': ''}
 
         self.properties[prop_name]['active'] = active
         if prop_type:
@@ -341,6 +342,8 @@ class FieldsDescriptorAnnotation(Annotation):
             self.properties[prop_name]['description'] = description
         if required:
             self.properties[prop_name]['required'] = required
+        if semantic_type:
+            self.properties[prop_name]['semantic_type'] = semantic_type
 
     def get_property(self, prop_name: str):
         """ Get a property from the properties list identified by the name.
@@ -364,11 +367,19 @@ class FieldsDescriptorAnnotation(Annotation):
         """ Add a dictionary of additions/updates to the properties list
             properties.
         """
-        # validate the json.
+
         for prop, values in new_properties.items():
-            # unpack the individual lines for processing.
+            # unpack the individual lines for processing, adding optional fields.
+            if 'description' not in values.keys():
+                values['description'] = ''
+            if 'required' not in values.keys():
+                values['required'] = False
+            if 'semantic_type' not in values.keys():
+                values['semantic_type'] = ''
+
             self.add_property(prop, values['active'], values['type'],
-                              values['description'], values['required'])
+                              values['description'], values['required'],
+                              values['semantic_type'])
 
     def to_dict(self):
         """Return principle data items in the form of a dictionary
@@ -386,20 +397,30 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
     service: str = ''
     service_version: str = ''
     service_user: str = ''
+    service_description: str = ''
+    service_ref: str = ''
     service_parameters: dict = {}
 
     def __init__(self, service: str,
                  service_version: str,
                  service_user: str,
+                 service_description : str,
+                 service_ref: str,
                  service_parameters: dict,
                  origin: str,
                  description: str,
                  properties: list):
 
         assert service
+        assert service_version
+        assert service_user
+        assert service_description
+        assert service_ref
         self.service = service
         self.service_version = service_version
         self.service_user = service_user
+        self.service_description = service_description
+        self.service_ref = service_ref
         if service_parameters:
             self.service_parameters = copy.deepcopy(service_parameters)
         else:
@@ -440,6 +461,8 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
         return {**super().to_dict(),
                 "service": self.service, "service_version": self.service_version,
                 "service_user": self.service_user,
+                "service_description": self.service_description,
+                "service_ref": self.service_ref,
                 "service_parameters": self.service_parameters}
 
 

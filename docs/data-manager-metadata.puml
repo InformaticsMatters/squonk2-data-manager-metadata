@@ -70,12 +70,16 @@ class FieldsDescriptorAnnotation {
 
 class ServiceExecutionAnnotation {
     *service : String
-    service_version : String
-    service_user : String
+    *service_version : String
+    *service_user : String
+    *service_description : String
+    *service_ref : String
     service_parameters : Dict
     get/set_service()
     get/set_version()
     get/set_user()
+    get/set_service_description()
+    get/set_service_ref()
     get/set_parameters()
     to_yaml()
     to_dict()

@@ -94,9 +94,10 @@ class MyTestCase(unittest.TestCase):
                                        'required': True, 'active': True},
                   'ID': {'type': 'string', 'description': 'Changed File Identifier',
                          'required': False, 'active': True}}
-        annotation4 = ServiceExecutionAnnotation('Jupyter notebook', '1.0', 'User 1',
-                                                 params, 'Supplier 1', 'A description',
-                                                 input_properties)
+        annotation4 = ServiceExecutionAnnotation\
+            ('Jupyter notebook', '1.0', 'User 1', 'service description',
+             'www.example.com/service.html', params, 'Supplier 1', 'A description',
+             input_properties)
         self.assertEqual(annotation4.get_service(), 'Jupyter notebook')
         self.assertEqual(annotation4.get_service_parameters(), params)
         output_JSONData = json.dumps(annotation4.to_json(), indent=4)

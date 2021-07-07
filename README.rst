@@ -1,7 +1,7 @@
 Informatics Matters Data-Manager Metadata
 =========================================
 
-A metadata package for the Data Tier Data Manager service.
+A metadata framework package for the Data Tier Data Manager service.
 The ``im-data-manager-metadata`` package is a set of utilities
 employed by the `Informatics Matters`_ Data-Manager service
 as a metadata framework for molecular datasets.
@@ -20,17 +20,21 @@ Dependencies
 Running the Unit Tests
 **********************
 
+    >>> python -m venv ~/.venv/data-manager-metadata
+    >>> source ~/.venv/data-manager-metadata/bin/activate
+    >>> pip install --upgrade pip
+    >>> pip install -r package-requirements.txt
     >>> python -m unittest test.test
 
 
 
-Example usage::
-***************
+Running the Command Line Interface *md-manage.py*
+*************************************************
 
-See test/test.py
+The data manager metadata command line interface can be used by applications to
+add annotations to the Metadata by means of an annotations.json files that can be
+uploaded.
 
-    >>> from data_manager_metadata import metadata
-    >>> m_version: str = metadata.version()
 
 
 .. _Informatics Matters: http://www.informaticsmatters.com
