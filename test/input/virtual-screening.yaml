@@ -1,0 +1,1011 @@
+---
+# A Data-Manager Job definition, defining 1 or more Data Manager Jobs.
+# For v1 the 'kind-version' must be '2021.1'
+kind: DataManagerJobDefinition
+kind-version: '2021.1'
+
+# An arbitrary name (ignored by the DataManager)
+name: RDKit virtual screening tools
+
+# The 'collection' for the jobs named in this definition.
+#
+# A collection ensures that all of the Jobs have unique names so that they
+# can be easily identified. A collection can be used by more than one
+# JobDefinition file but all the Job identities in a given collection must
+# be unique. i.e. our "shard-molecules" Job ID is unique because
+# it's in the collection "im-rdkit-virtual-screening" and there is no
+# other "shard-molecules" in the same collection. It is different
+# to any "shard-molecules" Job identity in any other collection.
+# The collection must only container lower-case letters, numbers and a hyphen
+# and must begin with a letter.
+collection: im-rdkit-virtual-screening
+
+# The repository where this definition (and the code for the Job) can be found.
+repository-url: https://github.com/InformaticsMatters/virtual-screening
+# The repository tag.
+# All definitions are expected to reside in a repository that has been tagged.
+repository-tag: '1.0.3'
+
+# Job definitions.
+# A list of jobs indexed using a unique identity (i.e. "shared-molecules").
+# Job identities must only container lower-case letters, numbers or a hyphen
+# and must begin with a letter.
+jobs:
+
+  # simple (non-nextflow) jobs ------------------------------------------------
+  # Where image->type is 'simple' (the default)
+
+  shard:
+    # An arbitrary name.
+    # The job is actually referred to in the API using the job (above),
+    # e.g. 'shard-molecules'. The name is simply here as a human-friendly
+    # reference.
+    name: Shard candidate molecules
+    # Human readable description
+    description: >-
+      Standardise input molecules and generate shards based on heavy atom count and
+      calculate a range of molecular properties that can be used for filtering.
+      Basic properties of the molecules, including the vendor code and SMILES are
+      stored in a data structure (based on the SHA256 digest of the standardised SMILES)
+      that can be shared between multiple datasets.
+    # The job version.
+    # Any string, but typically something compatible with SemVer 2.0.0
+    version: '1.0.0'
+    # An arbitrary category and keywords.3
+    # Provided to facilitate Job filtering in the client.
+    category: virtual screening
+    keywords:
+    - rdkit
+    - ligand preparation
+    # The container image that contains the Job implementation
+    # (in v1, these are hosted on Docker Hub)
+    # ... along with the image tag
+    # and the project directory (mount-point) to use for the Project data.
+    # You can also add a type enumeration ('simple' or 'nextflow'),
+    # although this field is optional.
+    image:
+      name: informaticsmatters/vs-prep
+      tag: 'latest'
+      project-directory: /data
+      type: simple
+    # The command that will be used as the Kubernetes Pod 'command'
+    # (after variable expansion). This is a jinja2 template with its variables
+    # described in the `variables` block below (A JSONSchema block).
+    command: >-
+      /code/shard.py -i{% for file in inputFiles %} /data/{{ file }}{% endfor %}
+      -s {{ supplierName }}
+      -v {{ supplierVersion }} -o /data/{{ outputDir }} -n {{ codeFieldIndex }}
+      --errors-file {{ supplierName }}_{{ supplierVersion }}_errors.smi
+      --interval 10000
+    # Command variables - using JSONSchema to allow for simplified client
+    # presentation to the user. 'inputs' and 'outputs' use custom types
+    # and typically consist of the definition of input files and output
+    # directories and files. 'options' are generic JSONSchema types,
+    # like 'strings', 'integers' etc.
+    # Every 'variable' expected by the command must be represented by a
+    # corresponding property in 'inputs', 'outputs' or 'options'.
+    variables:
+      order:
+        options:
+        - supplierName
+        - supplierVersion
+        - codeFieldIndex
+        - outputDir
+      inputs:
+        type: object
+        required:
+        - inputFiles
+        properties:
+          inputFiles:
+            title: Molecules to shard
+            mime-types:
+            - chemical/x-csv
+            multiple: true
+            type: file
+      outputs:
+        type: object
+        properties:
+          hacSlices:
+            title: HAC slices
+            mime-types:
+            - chemical/x-csv
+            creates: '{{ outputDir }}/{{ supplierName }}_{{ supplierVersion }}/*.smi'
+            type: directory
+          shards:
+            title: Sharded molecule data
+            mime-types:
+            - appliction/json
+            creates: '{{ outputDir }}/sha256/*/*/*.json'
+            type: directory
+      options:
+        type: object
+        required:
+        - supplierName
+        - supplierVersion
+        - codeFieldIndex
+        - outputDir
+        properties:
+          codeFieldIndex:
+            title: Index of vendor code field
+            default: 2
+            minimum: 1
+            type: integer
+          outputDir:
+            title: Output directory
+            type: string
+            default: molecules
+          supplierName:
+            title: Source of the molecules
+            type: string
+          supplierVersion:
+            title: Version of the molecule source
+            type: string
+
+  filter:
+    name: Filter candidate molecules
+    description: >-
+      Filter molecules based on molecular properties. The inputs are those generated using the
+      shard job.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - rdkit
+    - ligand preparation
+    - filter
+    image:
+      name: informaticsmatters/vs-prep
+      tag: 'latest'
+      project-directory: /data
+    command: >-
+      /code/filter.py -i /data/{{ inputDir }} -o /data/{{ outputFile }}
+      --min-hac {{ minHac }}
+      --max-hac {{ maxHac }}
+      {% if minRotb is defined %}--min-rotb {{ minRotb }}{% endif %}
+      {% if maxRotb is defined %}--max-rotb {{ maxRotb }}{% endif %}
+      {% if minRings is defined %}--min-rings {{ minRings }}{% endif %}
+      {% if maxRings is defined %}--max-rings {{ maxRings }}{% endif %}
+      {% if minAroRings is defined %}--min-aro-rings {{ minAroRings }}{% endif %}
+      {% if maxAroRings is defined %}--max-aro-rings {{ maxAroRings }}{% endif %}
+      {% if minChiralCenters is defined %}--min-chiral-centres {{ minChiralCenters }}{% endif %}
+      {% if maxChiralCenters is defined %}--max-chiral-centres {{ maxChiralCenters }}{% endif %}
+      {% if minUndefinedChiralCenters is defined %}--min-undefined-chiral-centres {{ minUndefinedChiralCenters }}{% endif %}
+      {% if maxUndefinedChiralCenters is defined %}--max-undefined-chiral-centres {{ maxUndefinedChiralCenters }}{% endif %}
+      {% if minSp3 is defined %}--min-sp3 {{ minSp3 }}{% endif %}
+      {% if maxSp3 is defined %}--max-sp3 {{ maxSp3 }}{% endif %}
+    variables:
+      order:
+        options:
+        - outputFile
+        - minHac
+        - maxHac
+        - minRotb
+        - maxRotb
+        - minRings
+        - maxRings
+        - minAroRings
+        - maxAroRings
+        - minChiralCentres
+        - maxChiralCentres
+        - minUndefinedChiralCentres
+        - maxUndefinedChiralCentres
+        - minSp3
+        - maxSp3
+      inputs:
+        type: object
+        required:
+        - inputDir
+        properties:
+          inputDir:
+            title: Directory with molecules to filter
+            mime-types:
+            - chemical/x-csv
+            type: dir
+      outputs:
+        type: object
+        properties:
+          outputFile:
+            title: Filtered output
+            mime-types:
+            - chemical/x-csv
+            creates: '{{ outputFile }}'
+            type: file
+      options:
+        type: object
+        required:
+        - minHac
+        - maxHac
+        - outputFile
+        properties:
+          outputFile:
+            title: Output file name
+            type: string
+            default: filtered.smi
+          minHac:
+            title: Minimum Heavy Atom Count
+            type: integer
+            minimum: 0
+          maxHac:
+            title: Maximum Heavy Atom Count
+            type: integer
+            minimum: 0
+          minRotb:
+            title: Minimum number of rotatable bonds
+            type: integer
+            minimum: 0
+          maxRotb:
+            title: Maximum number of rotatable bonds
+            type: integer
+            minimum: 0
+          minRings:
+            title: Minimum number of rings
+            type: integer
+            minimum: 0
+          maxRings:
+            title: Maximum number of rings
+            type: integer
+            minimum: 0
+          minAroRings:
+            title: Minimum number of aromatic rings
+            type: integer
+            minim: 0
+          maxAroRings:
+            title: Maximum number of aromatic rings
+            type: integer
+            minim: 0
+          minChiralCentres:
+            title: Minimum number of chiral centres
+            type: integer
+            minimum: 0
+          maxChiralCentres:
+            title: Maximum number of chiral centres
+            type: integer
+            minimum: 0
+          minUndefinedChiralCentres:
+            title: Minimum number of undefined chiral centres
+            type: integer
+            minimum: 0
+          maxUndefinedChiralCentres:
+            title: Maximum number of undefined chiral centres
+            type: integer
+            minimum: 0
+          minSp3:
+            title: Minimum sp3
+            type: integer
+            minimum: 0
+          maxSp3:
+            title: Maximum sp3
+            type: integer
+            minimum: 0
+            
+  max-min-picker:
+    name: Select diverse subset of molecules
+    description: >-
+      Select a diverse subset of molecules using the RDKit MaxMin Picker.
+      Morgan 2 fingerprints and Tanimoto distance is used.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - rdkit
+    - ligand preparation
+    - diverse subset
+    - filter
+    image:
+      name: informaticsmatters/vs-prep
+      tag: 'latest'
+      project-directory: /data
+    command: >-
+      /code/max_min_picker.py --input /data/{{ inputFile }} 
+      --output /data/{{ outputFile }}
+      --count {{ count }}
+      --interval 10000
+    variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        properties:
+          inputFile:
+            title: Molecules to pick from
+            mime-types:
+            - chemical/x-csv
+            type: file
+      outputs:
+        type: object
+        properties:
+          outputFile:
+            title: Output file
+            mime-types:
+            - chemical/x-csv
+            creates: '{{ outputFile }}'
+            type: file
+      options:
+        type: object
+        required:
+        - count
+        properties:
+          outputFile:
+            titldata_dire: Output file name
+            type: string
+            default: diverse.smi
+          count:
+            title: Number of molecules to pick
+            type: integer
+            minimum: 1
+
+  prep-enum-conf-lists:
+    name: Prepare enumeration and conformer lists
+    description: >-
+      Prepare lists of molecules that need enumeration of microstates, tautomers and undefined
+      chiral centres, and those that need 3D conformer generation.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - rdkit
+    - ligand preparation
+    - enumeration
+    - conformer generation
+    image:
+      name: informaticsmatters/vs-prep
+      tag: 'latest'
+      project-directory: /data
+    command: >-
+      /code/prepare_enum_conf_lists.py 
+      --input /data/{{ inputFile }}
+      --data-dir /data/{{ dataDir }}
+      --outfile-enum /data/{{ outputFileEnum }}
+      --outfile-conf /data/{{ outputFileConf }}
+    variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        - dataDir
+        properties:
+          inputFile:
+            title: Molecules to evaluate
+            mime-types:
+            - chemical/x-csv
+            type: file
+          dataDir:
+            title: Directory with sharded data
+            type: dir
+      outputs:
+        type: object
+        properties:
+          outputFileEnum:
+            title: Molecules needing enumeration
+            mime-types:
+            - chemical/x-csv
+            creates: '{{ outputFileEnum }}'
+            type: file
+          outputFileConf:
+            title: Molcules needing conformer generation
+            mime-types:
+            - chemical/x-csv
+            creates: '{{ outputFileConf }}'
+            type: file
+      options:
+        type: object
+        required:
+        - outputFileEnum
+        - outputFileConf
+        properties:
+          outputFileEnum:
+            title: Filename for molecules needing enumeration
+            type: string
+            default: need-enum.smi
+          outputFileConf:
+            title: Filename for molecules needing 3D conformers
+            type: string
+            default: need-conf.smi
+
+  generate-candidates:
+    name: Assemble conformers
+    description: >-
+      Assemble 3D conformers into a single SDF for suitable as input to docking.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - ligand preparation
+    image:
+      name: informaticsmatters/vs-prep
+      tag: 'latest'
+      project-directory: /data
+    command: >-
+      /code/gen_candidates.py 
+      --input /data/{{ inputFile }}
+      --data-dir /data/{{ dataDir }}
+      --output /data/{{ outputFile }}
+    variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        - dataDir
+        properties:
+          inputFile:
+            title: Molecules to assemble
+            mime-types:
+            - chemical/x-csv
+            type: file
+          dataDir:
+            title: Directory with sharded data
+            type: dir
+      outputs:
+        type: object
+        properties:
+          outputFile:
+            title: Assembled candidates
+            mime-types:
+            - chemical/x-mdl-sdfile
+            creates: '{{ outputFile }}'
+            type: file
+      options:
+        type: object
+        required:
+        - outputFile
+        properties:
+          outputFile:
+            title: Filename for SDF output
+            type: string
+            default: candidates.sdf
+            
+  obabel-convert:
+    name: Convert molecule format
+    description: >-
+      Convert molecular formats using OpenBabel. Can be used to prepare a protein for docking.
+      See https://open-babel.readthedocs.io/en/latest/Command-line_tools/babel.html
+      for a list of all the options.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - protein preparation
+    - openbabel
+    image:
+      name: informaticsmatters/vs-prep
+      tag: 'latest'
+      project-directory: /data
+    command: >-
+      obabel
+      /data/{{ inputFile }}
+      {{ options }}
+      -O /data/{{ outputFile }}
+    variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        properties:
+          inputFile:
+            title: Input file (e.g. pdb, pdbqt, mol or mol2 extension)
+            mime-types:
+            - chemical/x-pdb
+            - chemical/x-pdbqt
+            - chemical/x-mol2
+            - chemical/x-mol
+            type: file
+      outputs:
+        type: object
+        properties:
+          outputFile:
+            title: Converted molecule
+            mime-types:
+            - chemical/x-pdb
+            - chemical/x-pdbqt
+            - chemical/x-mol2
+            - chemical/x-mol
+            creates: '{{ outputFile }}'
+            type: file
+      options:
+        type: object
+        required:
+        - outputFile
+        properties:
+          outputFile:
+            title: Filename for output (e.g. pdb, pdbqt, mol or mol2 extension)
+            type: string
+          options:
+            title: Additional options. e.g. -p 7.0
+            type: string
+
+  pdb2pqr:
+    name: Prepare protein using pdb2pqr
+    description: >-
+      Prepare a protein for docking by using pdb2pqr. This can replace missing heavy atoms
+      and protnate the protein at a specific pH taking into account the local environment 
+      of titratable groups, such as the hydrogen bonding network. 
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - protein preparation
+    - pdb2pqr
+    - protonation
+    image:
+      name: informaticsmatters/vs-prep
+      tag: 'latest'
+      project-directory: /data
+    command: >-
+      pdb2pqr30 --with-ph {{ ph }}
+      --titration-state-method propka
+      --pdb-output /data/{{ outfileBasename }}.pdb
+      /data/{{ inputFile }}
+      /data/{{ outfileBasename }}.pqr
+    variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        properties:
+          inputFile:
+            title: Input PDB file
+            mime-types:
+            - chemical/x-pdb
+            type: file
+      outputs:
+        type: object
+        properties:
+          pdbFile:
+            title: PDB file
+            mime-types:
+            - chemical/x-pdb
+            creates: '{{ outfileBasename }}.pdb'
+            type: file
+          pqrFile:
+            title: PQR file
+            mime-types:
+            - chemical/x-pqr
+            creates: '{{ outfileBasename }}.pqr'
+            type: file
+          logFile:
+            title: Log file
+            mime-types:
+            - text/plain
+            creates: '{{ outfileBasename }}.log'
+            type: file
+      options:
+        type: object
+        required:
+        - outfileBasename
+        - ph
+        properties:
+          ph:
+            title: pH to protonate at
+            type: number
+            default: 7
+          outfileBasename:
+            title: Base filename for output (do not include the extension)
+            type: string
+
+            
+  prepare-rdock:
+    name: rDock prepare
+    description: >-
+      Prepare rDock configuration file (.prm file) and the cavity definition (.as file).
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - protein preparation
+    - rdock
+    image:
+      name: informaticsmatters/vs-rdock
+      tag: 'latest'
+      project-directory: /data
+    command: >-
+      /code/prepare_rdock.py 
+      --receptor /data/{{ receptorFile }}
+      --ligand /data/{{ ligandFile }}
+      --output /data/{{ outputBaseName }}
+    variables:
+      inputs:
+        type: object
+        required:
+        - receptorFile
+        - ligandFile
+        properties:
+          receptorFile:
+            title: MOL2 file for receptor
+            mime-types:
+            - chemical/x-mol2
+            type: file
+          ligandFile:
+            title: Molfile file for ligand
+            mime-types:
+            - chemical/x-mdl-molfile
+            type: file
+      outputs:
+        type: object
+        properties:
+          prmFile:
+            title: Docking configuration file
+            mime-types:
+            - squonk/x-rdock-prm
+            creates: '{{ outputBaseName }}.prm'
+            type: file
+          asFile:
+            title: Cavity definition file
+            mime-types:
+            - squonk/x-rdock-as
+            creates: '{{ outputBaseName }}.as'
+            type: file
+      options:
+        type: object
+        required:
+        - outputBaseName
+        properties:
+          outputBaseName:
+            title: Base name for output files
+            type: string
+            default: docking
+                          
+  # nextflow jobs                      
+  enumerate-candidates:
+    name: Enumerate microstates, tautomers and undefined chiral centres
+    description: >-
+      Enumerate microstates, tautomers and undefined chiral centres. Inputs are defined
+      by the prep-enum-conf-lists job. 
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - rdkit
+    - ligand preparation
+    - enumeration
+    - dimorphite_dl
+    - nextflow
+    image:
+      name: informaticsmatters/vs-nextflow
+      tag: 'latest'
+      project-directory: /data
+      type: nextflow
+    command: >-
+      nextflow run /code/enumerate.nf
+      --inputs /data/{{ inputFile }}
+      --data_dir /data/{{ dataDir }}
+      -with-trace
+      -with-report
+    variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        - dataDir
+        properties:
+          inputFile:
+            title: Molecules to enumerate
+            mime-types:
+            - chemical/x-csv
+            type: file
+          dataDir:
+            title: Directory with sharded data
+            type: dir
+      outputs:
+        type: object
+        properties:
+          enumerated:
+            title: Enumerated molecules
+            mime-types:
+            - chemical/x-csv
+            creates: '{{ dataDir }}/sha256/*/*/*.smi'
+            # additional *.smi files might have already been generated
+            type: directory
+          trace_file:
+            title: Nextflow trace file
+            creates: trace.txt
+            mime-types:
+            - text/plain
+          report_file:
+            title: Nextflow report file
+            creates: report.html
+            mime-types:
+            - text/html
+      # there are no options for this job
+      
+  generate-conformer:
+    name: Generate 3D conformer
+    description: >-
+      Generate a single 3D conformer of molecules. Inputs are defined
+      by the prep-enum-conf-lists job.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - openbabel
+    - ligand preparation
+    - conformer
+    - nextflow
+    image:
+      name: informaticsmatters/vs-nextflow
+      tag: 'latest'
+      project-directory: /data
+      type: nextflow
+    command: >-
+      nextflow run /code/gen_conformer.nf
+      --inputs /data/{{ inputFile }}
+      --data_dir /data/{{ dataDir }}
+      -with-trace
+      -with-report
+    variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        - dataDir
+        properties:
+          inputFile:
+            title: Molecules to process
+            mime-types:
+            - chemical/x-csv
+            type: file
+          dataDir:
+            title: Directory with sharded data
+            type: dir
+      outputs:
+        type: object
+        properties:
+          enumerated:
+            title: 3D conformers
+            mime-types:
+            - chemical/x-mdl-sdfile
+            creates: '{{ dataDir }}/sha256/*/*/*.sdf'
+            # additional *.sdf files might have already been generated
+            type: directory
+          trace_file:
+            title: Nextflow trace tile
+            creates: trace.txt
+            mime-types:
+            - text/plain
+          report_file:
+            title: Nextflow report file
+            creates: report.html
+            mime-types:
+            - text/html
+      # there are no options for this job
+      
+  run-rdock:
+    name: Run rRock docking
+    description: >-
+      Run rDock docking.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - rdock
+    - docking
+    - nextflow
+    image:
+      name: informaticsmatters/vs-nextflow
+      tag: 'latest'
+      project-directory: /data
+      type: nextflow
+    command: >-
+      nextflow run -c /code/nextflow.config /code/rdock-docking.nf
+      --ligands /data/{{ ligandsSDF }}
+      --protein /data/{{ proteinMOL2 }}
+      --prmfile /data/{{ prmFile }}
+      --asfile /data/{{ asFile }}
+      --num_dockings {{ numDockings }}
+      --publishDir /data/results
+      -with-trace
+      -with-report
+    variables:
+      inputs:
+        type: object
+        required:
+        - ligandsSDF
+        - proteinMOL2
+        - prmFile
+        - asFile
+        properties:
+          ligandsSDF:
+            title: Candidate ligands to process (SDF format)
+            mime-types:
+            - chemical/x-mdl-sdfile
+            type: file
+          proteinMOL2:
+            title: Prepared receptor (MOL2 format)
+            mime-types:
+            - chemical/x-mol2
+            type: file
+          prmFile:
+            title: rDock configuration (.prm file)
+            mime-types:
+            - squonk/x-rdock-prm
+            type: file
+          asFile:
+            title: Cavity definition (.as file)
+            mime-types:
+            - squonk/x-rdock-as
+            type: file
+      outputs:
+        type: object
+        properties:
+          dockedSDF:
+            title: Docked poses
+            mime-types:
+            - chemical/x-mdl-sdfile
+            creates: 'results/results.sdf.gz'
+            type: file
+          dockedTXT:
+            title: Pose report file
+            mime-types:
+            - text/csv
+            creates: 'results/results.txt'
+            type: file
+          trace_file:
+            title: Nextflow trace file
+            creates: trace.txt
+            mime-types:
+            - text/plain
+          report_file:
+            title: Nextflow report file
+            creates: report.html
+            mime-types:
+            - text/html
+      options:
+        type: object
+        required:
+        - numDockings
+        properties:
+          numDockings:
+            title: Number of dockings for each molecule
+            type: integer
+            default: 50
+
+  run-smina:
+    name: Run smina docking
+    description: >-
+      Run smina docking.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - smina
+    - docking
+    - nextflow
+    image:
+      name: informaticsmatters/vs-nextflow
+      tag: 'latest'
+      project-directory: /data
+      type: nextflow
+    command: >-
+      nextflow run -c /code/nextflow.config /code/smina-docking.nf
+      --ligands /data/{{ ligands }}
+      --protein /data/{{ protein }}
+      --ligand /data/{{ ligand }}
+      --padding {{ boxPadding }}
+      --exhaustiveness {{ exhaustiveness }}
+      --scoring_function {{ scoringFunction }}
+      --publishDir /data/results
+      -with-trace
+      -with-report
+    variables:
+      inputs:
+        type: object
+        required:
+        - ligands
+        - ligand
+        - protein
+        properties:
+          ligands:
+            title: Candidate ligands to process (SDF format)
+            mime-types:
+            - chemical/x-mdl-sdfile
+            type: file
+          protein:
+            title: Prepared receptor (PDBQT, PDB or MOL2 format)
+            mime-types:
+            - chemical/x-mol2
+            - chemical/x-pdb
+            - chemical/x-pdbqt
+            type: file
+          ligand:
+            title: Ligand file for box (PDBQT, PDB, MOL or MOL2 format)
+            mime-types:
+            - chemical/x-mdl-molfile
+            - chemical/x-mol2
+            - chemical/x-pdb
+            - chemical/x-pdbqt
+            type: file
+
+      outputs:
+        type: object
+        properties:
+          dockedSDF:
+            title: Docked poses
+            mime-types:
+            - chemical/x-mdl-sdfile
+            creates: 'results/results_smina.sdf'
+            type: file
+          trace_file:
+            title: Nextflow trace file
+            creates: trace.txt
+            mime-types:
+            - text/plain
+          report_file:
+            title: Nextflow report file
+            creates: report.html
+            mime-types:
+            - text/html
+      options:
+        type: object
+        required:
+        - boxPadding
+        - exhaustiveness
+        - scoringFunction
+        properties:
+          boxPadding:
+            title: Box definition padding
+            type: number
+            default: 4.0
+          exhaustiveness:
+            title: Exhaustiveness setting
+            type: integer
+            default: 8
+          scoringFunction:
+            title: Scoring function to use
+            type: array
+            items:
+            - type: string
+              enum:
+              - ad4_scoring
+              - dkoes_fast
+              - dkoes_scoring
+              - dkoes_scoring_old
+              - vina
+              - vinardo
+            
+  oddt-score-interactions:
+    name: ODDT rescoring and interactions
+    description: >-
+      Generate rescoring functions and interactions using ODDT.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - oddt
+    - docking
+    - nextflow
+    image:
+      name: informaticsmatters/vs-nextflow
+      tag: 'latest'
+      project-directory: /data
+      type: nextflow
+    command: >-
+      nextflow run /code/oddt.nf
+      --ligands /data/{{ ligandsSDF }}
+      --protein /data/{{ proteinPDB }}
+      --publishDir /data/results
+      -with-trace
+      -with-report
+    variables:
+      inputs:
+        type: object
+        required:
+        - ligandsSDF
+        - proteinPDB
+        properties:
+          ligandsSDF:
+            title: Candidate ligands to process (SDF format)
+            mime-types:
+            - chemical/x-mdl-sdfile
+            type: file
+          proteinPDB:
+            title: Prepared receptor (PDB format)
+            mime-types:
+            - chemical/x-pdb
+            type: file
+      outputs:
+        type: object
+        properties:
+          scoredSDF:
+            title: Scored poses
+            mime-types:
+            - chemical/x-mdl-sdfile
+            creates: 'results/results_oddt.sdf.gz'
+            type: file
+          trace_file:
+            title: Nextflow trace file
+            creates: trace.txt
+            mime-types:
+            - text/plain
+          report_file:
+            title: Nextflow report file
+            creates: report.html
+            mime-types:
+            - text/html
+      # there are no options for this job

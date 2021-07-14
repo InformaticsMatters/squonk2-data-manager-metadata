@@ -12,6 +12,10 @@ _ANNOTATION_VERSION: str = '0.0.1'
 _SCHEMA: str = 'http://json-schema.org/draft/2019-09/schema#'
 _SCHEMA_ID: str = 'https://example.com/product.schema.json'
 
+# This is the basic structure of the rows FieldsDescriptorAnnotation Properties list
+# That is indexed by the property name.
+PROPERTY_DICT = {'type': '', 'description': '', 'required': False,
+                  'active': False}
 
 def metadata_version() -> str:
     return _METADATA_VERSION
@@ -101,15 +105,25 @@ class Metadata:
         self.annotations.append(annotation)
         self.last_updated = datetime.datetime.utcnow()
 
-    def get_annotations_dict(self):
-        """ Get a list of all annotations from the annotation list in json format.
-        """
-        return [anno.to_dict() for anno in self.annotations]
+    def get_annotations_dict(self, annotation_type=all):
+        """ Get a list of all annotations from the annotation list in dict format.
 
-    def get_annotations_json(self):
+            The list can be filtered by annotation class.
+            Within an annotation class, the keyword arguments can be used to filter within
+            a particular class.
+        """
+        anno_list = []
+        for anno in self.annotations:
+            if annotation_type is all:
+                anno_list.append(anno.to_dict())
+            elif anno.get_type() is annotation_type:
+                anno_list.append(anno.to_dict())
+        return anno_list
+
+    def get_annotations_json(self, annotation_type=all):
         """ Get a list of all annotations from the annotation list in json format.
         """
-        return json.dumps(self.get_annotations_dict())
+        return json.dumps(self.get_annotations_dict(annotation_type))
 
     def _create_annotation(self, annotation_row: dict):
         """ Creates an annotation object based on the dictionary and add to the annotations list.
@@ -135,25 +149,19 @@ class Metadata:
         self.add_annotation(annotation)
 
     def add_annotations(self, annotations: json):
-        """ Add a list of annotations in jso format to the annotation list
+        """ Add a list of annotations in json format to the annotation list
         """
         # Note that this also validates the Json and returns a ValueError if not valid
         annotations_list = json.loads(annotations)
+
+        # If a single annotation is provided but it's simply not in a list then add it
+        if annotations.lstrip()[0] != '[':
+            annotations_list = []
+            annotations_list.append(json.loads(annotations))
+
         for annotation_row in annotations_list:
             self._create_annotation(annotation_row)
         self.last_updated = datetime.datetime.utcnow()
-
-    def to_dict(self):
-        """Return principle data items in the form of a dictionary
-        """
-        return {"dataset_name": self.dataset_name,
-                "dataset_id": self.dataset_uuid,
-                "description": self.description,
-                "created": self.created.isoformat(),
-                "last_updated": self.last_updated.isoformat(),
-                "created_by": self.created_by,
-                "metadata_version": self.metadata_version,
-                "annotations": [anno.to_dict() for anno in self.annotations]}
 
     def get_json_schema(self):
         """ Returns the latest complete FieldsDescriptor as a dict of the json schema
@@ -186,6 +194,45 @@ class Metadata:
                   'required': required}
 
         return schema
+
+    def get_labels(self, active=None):
+        """ Returns a list of the active/inactive Label Annotations.
+            The last version of each label is returned.
+            If the last entry of the label annotation is marked as inactive then
+            the label is not returned in the list.
+        """
+        label_list = []
+        label_set = set()
+        # Read through labels in reverse order and take the latest one for each label.
+        for anno in reversed(self.annotations):
+            if anno.get_type() == 'LabelAnnotation' and (anno.get_label() not in label_set):
+                label_list.append(anno)
+                label_set.add(anno.get_label())
+
+        # If not active then filter any inactive labels
+        if active is True:
+            for label in label_list:
+                if label.get_active() is False:
+                    label_list.remove(label)
+
+        if active is False:
+            for label in label_list:
+                if label.get_active() is True:
+                    label_list.remove(label)
+
+        return [label.to_dict() for label in label_list]
+
+    def to_dict(self):
+        """Return principle data items in the form of a dictionary
+        """
+        return {"dataset_name": self.dataset_name,
+                "dataset_id": self.dataset_uuid,
+                "description": self.description,
+                "created": self.created.isoformat(),
+                "last_updated": self.last_updated.isoformat(),
+                "created_by": self.created_by,
+                "metadata_version": self.metadata_version,
+                "annotations": [anno.to_dict() for anno in self.annotations]}
 
     def to_json(self):
         """ Serialize class to JSON
@@ -261,7 +308,7 @@ class LabelAnnotation(Annotation):
     """
     label: str = ''
     value: str = ''
-    active: bool
+    active: bool = True
 
     def __init__(self, label: str, value: str = '', active: bool = True):
         assert label
@@ -326,14 +373,13 @@ class FieldsDescriptorAnnotation(Annotation):
                      active: bool = True,
                      prop_type: str = None,
                      description: str = None,
-                     required: bool = None,
-                     semantic_type: str = ''):
+                     required: bool = None):
         """ Add an individual property to the properties list
         """
         assert prop_name
         if prop_name not in self.properties:
-            self.properties[prop_name] = {'type': '', 'description': '', 'required': False,
-                                          'active': False, 'semantic_type': ''}
+            # Note that this has to be copied in or it will reference the same dict.
+            self.properties[prop_name] = copy.deepcopy(PROPERTY_DICT)
 
         self.properties[prop_name]['active'] = active
         if prop_type:
@@ -342,13 +388,26 @@ class FieldsDescriptorAnnotation(Annotation):
             self.properties[prop_name]['description'] = description
         if required:
             self.properties[prop_name]['required'] = required
-        if semantic_type:
-            self.properties[prop_name]['semantic_type'] = semantic_type
 
     def get_property(self, prop_name: str):
         """ Get a property from the properties list identified by the name.
         """
         return self.properties[prop_name]
+
+    def add_properties(self, new_properties: dict):
+        """ Add a dictionary of additions/updates to the properties list
+            properties.
+        """
+
+        for prop, values in new_properties.items():
+            # unpack the individual lines for processing, adding optional fields.
+            if 'description' not in values.keys():
+                values['description'] = ''
+            if 'required' not in values.keys():
+                values['required'] = False
+
+            self.add_property(prop, values['active'], values['type'],
+                              values['description'], values['required'])
 
     def get_properties(self, get_all:bool = False):
         """ Get (all/only active) properties from the property list in dict format.
@@ -362,24 +421,6 @@ class FieldsDescriptorAnnotation(Annotation):
                 if value['active']:
                     active_properties[prop]=value
             return active_properties
-
-    def add_properties(self, new_properties: dict):
-        """ Add a dictionary of additions/updates to the properties list
-            properties.
-        """
-
-        for prop, values in new_properties.items():
-            # unpack the individual lines for processing, adding optional fields.
-            if 'description' not in values.keys():
-                values['description'] = ''
-            if 'required' not in values.keys():
-                values['required'] = False
-            if 'semantic_type' not in values.keys():
-                values['semantic_type'] = ''
-
-            self.add_property(prop, values['active'], values['type'],
-                              values['description'], values['required'],
-                              values['semantic_type'])
 
     def to_dict(self):
         """Return principle data items in the form of a dictionary
@@ -406,10 +447,10 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
                  service_user: str,
                  service_description : str,
                  service_ref: str,
-                 service_parameters: dict,
-                 origin: str,
-                 description: str,
-                 properties: list):
+                 service_parameters: dict = None,
+                 origin: str = '',
+                 description: str = '',
+                 properties: list = None):
 
         assert service
         assert service_version

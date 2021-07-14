@@ -35,6 +35,32 @@ The data manager metadata command line interface can be used by applications to
 add annotations to the Metadata by means of an annotations.json files that can be
 uploaded.
 
+    - help functions. Note that the *annotation_type* (lb, fd or se) is required.
+
+    >>> python md_manage.py -h
+    >>> python md_manage.py lb -h
+    >>> python md_manage.py fd -h
+    >>> python md_manage.py se -h
+
+    - Creates a label annotation in an annotations.json file placed in test/output.
+      Note that the *label* is required. Running the command again will create a second annotation
+      in the same file (i.e. a list of two).
+
+    >>> python md_manage.py lb 'label' -lv='blob' -af=test/output
+
+    - Creates a FieldsDescriptorAnnotation in an annotations.json file placed in test/output.
+      If the annotations.json file exists it will add it to the list of annotations in the file.
+
+    >>> python md_manage.py fd -fo='squonk2-job' -fp='minimizedAffinity,number,Binding affinity
+                            predicted by smina using the vinardo scoring function,true,true'
+                            -fd='Run smina docking' -af=test/output
+
+    - Creates a service execution annotation in an annotations.json file placed in test/output.
+
+    >>> python md_manage.py se -su=bob -sys='run-smina' -sy='test/input/virtual-screening.yaml'
+                           -sp param1=val1 param2=val2 -fo='squonk2-job'
+                           -fp='minimizedAffinity,number,Binding affinity predicted,true,true'
+                           -fd='Run smina docking' -af=test/output
 
 
 .. _Informatics Matters: http://www.informaticsmatters.com
