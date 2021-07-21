@@ -37,26 +37,25 @@ import sys
 import json
 from yaml import safe_load
 from data_manager_metadata.metadata import (PROPERTY_DICT,
+                                            get_annotation_filename,
                                             Metadata,
                                             LabelAnnotation,
                                             FieldsDescriptorAnnotation,
                                             ServiceExecutionAnnotation)
 
-_ANNOTATION_FILENAME = 'annotation.json'
 
 def add_label_annotation_args(parser):
     """Add arguments for the label annotation formatter
     """
+    # This is common to all annotations should be first
+    parser.add_argument('filepath', type=str,
+                        help='Filepath to a (results) file that will have an annotations file. '
+                             'associated with it. If the file exists then annotations will be'
+                             ' appended - Required')
     parser.add_argument('label', type=str, help='Label, required')
     parser.add_argument('-lv', '--value', type=str, help='Value to attach the label, optional')
     parser.add_argument('--make-inactive', action = 'store_false', help='When set, this makes the '
                                                    'label inactive')
-
-    # This is common to all annotations - should be last
-    parser.add_argument('-af', '--annotations_file', type=str,
-                        help='Filepath to annotations file. If spaces, defaults to '
-                             'runpath. Note that the filename is defaulted to'
-                             '"annotations.json"')
 
     parser.set_defaults(func=create_label_annotation)
 
@@ -64,17 +63,17 @@ def add_label_annotation_args(parser):
 def add_fields_descriptor_annotation_args(parser):
     """Add arguments for the fields descriptor annotation formatter
     """
+    # This is common to all annotations should be first
+    parser.add_argument('filepath', type=str,
+                        help='Filepath to a (results) file that will have an annotations file. '
+                             'associated with it. If the file exists then annotations will be'
+                             ' appended - Required')
     parser.add_argument('-fo', '--origin', type=str, help='Origin of Dataset')
     parser.add_argument('-fd', '--description', type=str, help='Description of Dataset')
     parser.add_argument('-fp', '--add_field_property', type=str,
                         help='Add a property in comma separated form in order: name,type,'
                              'description,required,active,semantic_ref. Fields: required, active '
                              'and semantic-ref are optional ')
-    # This is common to all annotations - should be last
-    parser.add_argument('-af', '--annotations_file', type=str,
-                        help='Filepath to annotations file. If spaces, defaults to '
-                             'runpath. Note that the filename is defaulted to'
-                             '"annotations.json"')
 
     parser.set_defaults(func=create_fields_descriptor_annotation)
 
@@ -109,7 +108,7 @@ def add_service_execution_annotation_args(parser):
                              "it with double quotes: "
                              'foo="this is a sentence". Note that '
                              "values are always treated as strings.")
-    # annotation_file is provided implicitly by the FieldsDescriptor
+    # filename is provided implicitly by the FieldsDescriptor
 
     parser.set_defaults(func=create_service_execution_annotation)
 
@@ -276,13 +275,15 @@ if __name__ == '__main__':
     add_service_execution_annotation_args(parser_se)
 
     args = parser.parse_args()
-    if args.annotations_file:
-        # A file path is provided.
-        if not os.path.exists(args.annotations_file):
-            os.makedirs(args.annotations_file)
-        anno_file = os.path.join(args.annotations_file, _ANNOTATION_FILENAME)
-    else:
-        anno_file = _ANNOTATION_FILENAME
+    assert args.filepath
+    file_name = os.path.basename(args.filepath)
+    file_dir = os.path.dirname(args.filepath)
+
+    annotations_filename = get_annotation_filename(file_name)
+
+    if not os.path.exists(file_dir):
+        os.makedirs(file_dir)
+    anno_file = os.path.join(file_dir, annotations_filename)
 
     # Create a metadata class to act as a holder for annotations
     meta_holder = Metadata('dm', 'dm', 'dm', 'dm')

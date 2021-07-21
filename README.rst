@@ -46,21 +46,23 @@ uploaded.
       Note that the *label* is required. Running the command again will create a second annotation
       in the same file (i.e. a list of two).
 
-    >>> python md_manage.py lb 'label' -lv='blob' -af=test/output
+    >>> python md_manage.py lb test/output/results.sdf 'foo' -lv='bar'
 
     - Creates a FieldsDescriptorAnnotation in an annotations.json file placed in test/output.
       If the annotations.json file exists it will add it to the list of annotations in the file.
 
-    >>> python md_manage.py fd -fo='squonk2-job' -fp='minimizedAffinity,number,Binding affinity
+    >>> python md_manage.py fd test/output/results.sdf -fo='squonk2-job'
+                            -fp='minimizedAffinity,number,Binding affinity
                             predicted by smina using the vinardo scoring function,true,true'
-                            -fd='Run smina docking' -af=test/output
+                            -fd='Run smina docking'
 
     - Creates a service execution annotation in an annotations.json file placed in test/output.
 
-    >>> python md_manage.py se -su=bob -sys='run-smina' -sy='test/input/virtual-screening.yaml'
+    >>> python md_manage.py se test/output/results.sdf -su=bob -sys='run-smina'
+                           -sy='test/input/virtual-screening.yaml'
                            -sp param1=val1 param2=val2 -fo='squonk2-job'
                            -fp='minimizedAffinity,number,Binding affinity predicted,true,true'
-                           -fd='Run smina docking' -af=test/output
+                           -fd='Run smina docking'
 
 
 .. _Informatics Matters: http://www.informaticsmatters.com

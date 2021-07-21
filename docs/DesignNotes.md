@@ -1,8 +1,8 @@
 # Data Manager Metadata - Design Notes
-The Data Manager Metadata library 
-the HTTP and REST API service, Flask's **SQLAlchemy** to manage the database
-and Flask's Migration (**Alembic**) to manage database migrations and
-**Celery** for remote (asynchronous) task execution.
+The Data Manager Metadata library has been developed to contain the intelligence for creating and 
+managing the annotations that are attached to datasets in the Squonk2 Data Manager.
+It can be used to create annotations that can then subsequently be uploaded to a dataset
+via a file or the data manager POST/dataset/annotations API.
 
 ## Directory contents
 
@@ -17,14 +17,6 @@ and Flask's Migration (**Alembic**) to manage database migrations and
     is changed. It is also run in github actions to build the library. 
 
    
-## Application design
-
-`__init__.py` and `app.py` are responsible for creating the connexion/Flask
-app and creating a `db` and `migration` objects.
-These objects are used by several models with the `db`
-object is used by `models.py` to define the database topology
-(using `SQLAlchemy`).
-
 ## Migrating annotations
 If the metadata or annotations classes change format, it will be necessary to also 
 update the meta_data jsonb column in the dataset table in the Mini-Apps-Data-Tier, 

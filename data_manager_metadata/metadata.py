@@ -11,6 +11,8 @@ _METADATA_VERSION: str = '0.0.1'
 _ANNOTATION_VERSION: str = '0.0.1'
 _SCHEMA: str = 'http://json-schema.org/draft/2019-09/schema#'
 _SCHEMA_ID: str = 'https://example.com/product.schema.json'
+_ANNOTATIONS_EXT = '.annotations'
+
 
 # This is the basic structure of the rows FieldsDescriptorAnnotation Properties list
 # That is indexed by the property name.
@@ -23,6 +25,14 @@ def metadata_version() -> str:
 
 def annotation_version() -> str:
     return _ANNOTATION_VERSION
+
+
+def get_annotation_filename(filename: str) -> str:
+    """Return the associated annotations filename for a particular file
+    This is very simple, but best done the same way everywhere!
+    """
+    assert filename
+    return filename + _ANNOTATIONS_EXT
 
 
 class Metadata:
