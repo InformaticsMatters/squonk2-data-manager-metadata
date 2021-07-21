@@ -14,9 +14,9 @@ _SCHEMA_ID: str = 'https://example.com/product.schema.json'
 _ANNOTATIONS_EXT = '.annotations'
 
 
-# This is the basic structure of the rows FieldsDescriptorAnnotation Properties list
-# That is indexed by the property name.
-PROPERTY_DICT = {'type': '', 'description': '', 'required': False,
+# This is the basic structure of the rows FieldsDescriptorAnnotation fields list
+# That is indexed by the field name.
+FIELD_DICT = {'type': '', 'description': '', 'required': False,
                   'active': False}
 
 def metadata_version() -> str:
@@ -179,19 +179,19 @@ class Metadata:
         """
 
         # Process all FieldDescriptor Annotations in the Annotations list in order
-        # to retrieve all of the properties in the dataset. Add these to a single
-        # new FieldDescriptor that will have compilation of all properties.
-        # We can then extract the active properties from the final compiled FieldDescriptor to
+        # to retrieve all of the fields in the dataset. Add these to a single
+        # new FieldDescriptor that will have compilation of all fields.
+        # We can then extract the active fields from the final compiled FieldDescriptor to
         # use in the json schema output.
         comp_descriptor = FieldsDescriptorAnnotation()
         for annotation in self.annotations:
             if annotation.get_type() == 'FieldsDescriptorAnnotation':
-                comp_descriptor.add_properties(annotation.get_properties())
-        properties = {}
+                comp_descriptor.add_fields(annotation.get_fields())
+        fields = {}
         required = []
 
-        for prop, value in comp_descriptor.get_properties(False).items():
-            properties[prop] = {'type': value['type'], 'description': value['description']}
+        for prop, value in comp_descriptor.get_fields(False).items():
+            fields[prop] = {'type': value['type'], 'description': value['description']}
             if value['required']:
                 required.append(prop)
 
@@ -200,7 +200,7 @@ class Metadata:
                   'title': self.dataset_name,
                   'description': self.description,
                   "type": "object",
-                  'properties': properties,
+                  'fields': fields,
                   'required': required}
 
         return schema
@@ -349,22 +349,22 @@ class FieldsDescriptorAnnotation(Annotation):
     """Class FieldsDescriptorAnnotation
 
     Purpose: Object to add a Fields Descriptor annotation to the metadata.
-    The class contains a list of properties that a dataset will contain.
+    The class contains a list of fields that a dataset will contain.
     This is expected to be of the format:
     { "name": string, "type": string, "description": string, "active": boolean}
 
     """
     origin: str = ''
     description: str = ''
-    properties: dict = {}
+    fields: dict = {}
 
-    def __init__(self, origin: str = '', description: str = '', properties: dict = None):
+    def __init__(self, origin: str = '', description: str = '', fields: dict = None):
         self.origin = origin
         self.description = description
-        if properties:
-            self.add_properties(properties)
+        if fields:
+            self.add_fields(fields)
         else:
-            self.properties = {}
+            self.fields = {}
         super().__init__()
 
     def get_origin(self):
@@ -379,64 +379,64 @@ class FieldsDescriptorAnnotation(Annotation):
     def set_description(self, description):
         self.description = description
 
-    def add_property(self, prop_name: str,
+    def add_field(self, field_name: str,
                      active: bool = True,
                      prop_type: str = None,
                      description: str = None,
                      required: bool = None):
-        """ Add an individual property to the properties list
+        """ Add an individual property to the fields list
         """
-        assert prop_name
-        if prop_name not in self.properties:
+        assert field_name
+        if field_name not in self.fields:
             # Note that this has to be copied in or it will reference the same dict.
-            self.properties[prop_name] = copy.deepcopy(PROPERTY_DICT)
+            self.fields[field_name] = copy.deepcopy(FIELD_DICT)
 
-        self.properties[prop_name]['active'] = active
+        self.fields[field_name]['active'] = active
         if prop_type:
-            self.properties[prop_name]['type'] = prop_type
+            self.fields[field_name]['type'] = prop_type
         if description:
-            self.properties[prop_name]['description'] = description
+            self.fields[field_name]['description'] = description
         if required:
-            self.properties[prop_name]['required'] = required
+            self.fields[field_name]['required'] = required
 
-    def get_property(self, prop_name: str):
-        """ Get a property from the properties list identified by the name.
+    def get_property(self, field_name: str):
+        """ Get a property from the fields list identified by the name.
         """
-        return self.properties[prop_name]
+        return self.fields[field_name]
 
-    def add_properties(self, new_properties: dict):
-        """ Add a dictionary of additions/updates to the properties list
-            properties.
+    def add_fields(self, new_fields: dict):
+        """ Add a dictionary of additions/updates to the fields list
+            fields.
         """
 
-        for prop, values in new_properties.items():
+        for prop, values in new_fields.items():
             # unpack the individual lines for processing, adding optional fields.
             if 'description' not in values.keys():
                 values['description'] = ''
             if 'required' not in values.keys():
                 values['required'] = False
 
-            self.add_property(prop, values['active'], values['type'],
+            self.add_field(prop, values['active'], values['type'],
                               values['description'], values['required'])
 
-    def get_properties(self, get_all:bool = False):
-        """ Get (all/only active) properties from the property list in dict format.
+    def get_fields(self, get_all:bool = False):
+        """ Get (all/only active) fields from the property list in dict format.
         """
         if get_all:
-            return self.properties
+            return self.fields
         else:
-            # Return active properties only
-            active_properties = {}
-            for prop, value in self.properties.items():
+            # Return active fields only
+            active_fields = {}
+            for prop, value in self.fields.items():
                 if value['active']:
-                    active_properties[prop]=value
-            return active_properties
+                    active_fields[prop]=value
+            return active_fields
 
     def to_dict(self):
         """Return principle data items in the form of a dictionary
         """
         return {**super().to_dict(), "origin": self.origin,
-                "description": self.description, "properties": self.properties}
+                "description": self.description, "fields": self.fields}
 
 
 class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
@@ -448,35 +448,35 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
     service: str = ''
     service_version: str = ''
     service_user: str = ''
-    service_description: str = ''
+    service_name: str = ''
     service_ref: str = ''
     service_parameters: dict = {}
 
     def __init__(self, service: str,
                  service_version: str,
                  service_user: str,
-                 service_description : str,
+                 service_name : str,
                  service_ref: str,
                  service_parameters: dict = None,
                  origin: str = '',
                  description: str = '',
-                 properties: list = None):
+                 fields: list = None):
 
         assert service
         assert service_version
         assert service_user
-        assert service_description
+        assert service_name
         assert service_ref
         self.service = service
         self.service_version = service_version
         self.service_user = service_user
-        self.service_description = service_description
+        self.service_name = service_name
         self.service_ref = service_ref
         if service_parameters:
             self.service_parameters = copy.deepcopy(service_parameters)
         else:
             self.service_parameters = {}
-        super().__init__(origin, description, properties)
+        super().__init__(origin, description, fields)
 
     def get_service(self):
         return self.service
@@ -512,7 +512,7 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
         return {**super().to_dict(),
                 "service": self.service, "service_version": self.service_version,
                 "service_user": self.service_user,
-                "service_description": self.service_description,
+                "service_name": self.service_name,
                 "service_ref": self.service_ref,
                 "service_parameters": self.service_parameters}
 

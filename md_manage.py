@@ -36,7 +36,7 @@ import os
 import sys
 import json
 from yaml import safe_load
-from data_manager_metadata.metadata import (PROPERTY_DICT,
+from data_manager_metadata.metadata import (FIELD_DICT,
                                             get_annotation_filename,
                                             Metadata,
                                             LabelAnnotation,
@@ -71,7 +71,7 @@ def add_fields_descriptor_annotation_args(parser):
     parser.add_argument('-fo', '--origin', type=str, help='Origin of Dataset')
     parser.add_argument('-fd', '--description', type=str, help='Description of Dataset')
     parser.add_argument('-fp', '--add_field_property', type=str,
-                        help='Add a property in comma separated form in order: name,type,'
+                        help='Add a field in comma separated form in order: name,type,'
                              'description,required,active,semantic_ref. Fields: required, active '
                              'and semantic-ref are optional ')
 
@@ -87,14 +87,14 @@ def add_service_execution_annotation_args(parser):
                         help='Route to yaml file containing service definition')
     parser.add_argument('-sys', '--service_yaml_section', type=str,
                         help='Section in yaml file containing service definition details')
-    parser.add_argument('-sn', '--service', type=str,
+    parser.add_argument('-s', '--service', type=str,
                         help='Name of the service being performed. Required if yaml file '
                              'not present. If yaml file present, will overwrite value')
     parser.add_argument('-sv', '--service_version', type=str,
                         help='Version of the service being performed. Required if yaml file '
                              'not present. If yaml file present, will overwrite value')
-    parser.add_argument('-sd', '--service_description', type=str,
-                        help='Description of service. Required if yaml file '
+    parser.add_argument('-sn', '--service_name', type=str,
+                        help='Name of service. Required if yaml file '
                              'not present. If yaml file present, will overwrite value')
     parser.add_argument('-sr', '--service_ref', type=str,
                         help='URL reference to documentation for service. Required if yaml file '
@@ -119,35 +119,35 @@ def create_label_annotation(args):
     return LabelAnnotation(args.label, args.value, args.make_inactive)
 
 
-def _create_prop_dict(properties : str):
-    """Takes an list of properties in a string, unpacks and returns in a dictionary
+def _create_field_dict(fields : str):
+    """Takes an list of fields in a string, unpacks and returns in a dictionary
     """
 
-    prop_dict: dict = {}
-    # Properties are of the form: name: (type,description,required,semantic-type)
-    prop_list = properties.split(',')
+    field_dict: dict = {}
+    # fields are of the form: name: (type,description,required,semantic-type)
+    prop_list = fields.split(',')
     name = prop_list[0]
-    prop_dict[name] = PROPERTY_DICT
-    prop_dict[name]['type'] = prop_list[1]
-    prop_dict[name]['description'] = prop_list[2]
+    field_dict[name] = FIELD_DICT
+    field_dict[name]['type'] = prop_list[1]
+    field_dict[name]['description'] = prop_list[2]
     if len(prop_list) > 3:
-        prop_dict[name]['required'] = prop_list[3]
+        field_dict[name]['required'] = prop_list[3]
     if len(prop_list) > 4:
-        prop_dict[name]['active'] = prop_list[4]
+        field_dict[name]['active'] = prop_list[4]
     if len(prop_list) > 5:
-        prop_dict[name]['semantic_type'] = prop_list[5]
-    return prop_dict
+        field_dict[name]['semantic_type'] = prop_list[5]
+    return field_dict
 
 
 def create_fields_descriptor_annotation(args):
     """Add a FieldsDescriptor annotation to the annotation json file
     """
-    prop_dict: dict = {}
+    field_dict: dict = {}
 
     if args.add_field_property:
-        prop_dict = _create_prop_dict(args.add_field_property)
+        field_dict = _create_field_dict(args.add_field_property)
 
-    return FieldsDescriptorAnnotation(args.origin, args.description, prop_dict)
+    return FieldsDescriptorAnnotation(args.origin, args.description, field_dict)
 
 
 def _params_from_file(filename: str, section: str, param_dict: dict):
@@ -165,9 +165,9 @@ def _params_from_file(filename: str, section: str, param_dict: dict):
         yaml_dict = safe_load(yaml_file)
         service_dict = yaml_dict['jobs'][section]
 
-        param_dict['service'] = service_dict['name']
+        param_dict['service'] = section
         param_dict['service_version'] = service_dict['version']
-        param_dict['service_description'] = service_dict['description']
+        param_dict['service_name'] = service_dict['name']
 
         # This is required in the annotation, so it should either be a required parameter or
         # added to the yaml.
@@ -214,21 +214,21 @@ def _params_from_line(service_parameters: list, param_dict: dict):
 def create_service_execution_annotation(args):
     """Add a ServiceExecution annotation to the annotation json file
     """
-    prop_dict: dict = ()
+    field_dict: dict = ()
     param_dict: dict = {'service': args.service, 'service_version': args.service_version,
                        'service_user': args.service_user,
-                       'service_description': args.service_description,
+                       'service_name': args.service_name,
                        'service_ref': args.service_ref,
                        'service_parameters': {},
                        'origin': args.origin,
                        'description': args.description,
-                       'properties': prop_dict
+                       'fields': field_dict
                         }
 
     if args.add_field_property:
-        prop_dict = _create_prop_dict(args.add_field_property)
+        field_dict = _create_field_dict(args.add_field_property)
 
-    param_dict['properties'] = prop_dict
+    param_dict['fields'] = field_dict
 
     if args.service_yaml_file:
         param_dict = _params_from_file(args.service_yaml_file, args.service_yaml_section,
@@ -240,7 +240,7 @@ def create_service_execution_annotation(args):
     assert param_dict['service']
     assert param_dict['service_version']
     assert param_dict['service_user']
-    assert param_dict['service_description']
+    assert param_dict['service_name']
 
     # This should ultimately be in the yaml file I think..
     assert param_dict['service_ref']

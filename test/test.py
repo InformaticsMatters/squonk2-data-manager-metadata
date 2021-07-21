@@ -46,24 +46,24 @@ class MyTestCase(unittest.TestCase):
 
     def test_03_fields_annotations(self):
         print ('\n3.1. FieldsDescriptor Annotation')
-        input_properties = {'smiles': {'type': 'string', 'description': 'standardized smiles',
+        input_fields = {'smiles': {'type': 'string', 'description': 'standardized smiles',
                                        'required': True, 'active': True},
                             'uuid': {'type': 'uuid', 'description': 'Molecule Identifier',
                                    'required': True, 'active': True},
                             'id': {'type': 'string', 'description': 'File Identifier',
                                    'required': False, 'active': True},
                             }
-        annotation3 = FieldsDescriptorAnnotation('Supplier 1', 'A description', input_properties)
-        ouput_properties = annotation3.get_properties()
-        self.assertEqual(ouput_properties, input_properties)
-        self.assertEqual(annotation3.get_property('smiles'), input_properties['smiles'])
-        self.assertEqual(annotation3.get_property('uuid'), input_properties['uuid'])
+        annotation3 = FieldsDescriptorAnnotation('Supplier 1', 'A description', input_fields)
+        ouput_fields = annotation3.get_fields()
+        self.assertEqual(ouput_fields, input_fields)
+        self.assertEqual(annotation3.get_property('smiles'), input_fields['smiles'])
+        self.assertEqual(annotation3.get_property('uuid'), input_fields['uuid'])
 
-        annotation3.add_property('smiles',prop_type='smiles')
-        self.assertNotEqual(annotation3.get_property('smiles'), input_properties['smiles'])
-        annotation3.add_property('id',active=False)
-        self.assertNotEqual(annotation3.get_property('id'), input_properties['id'])
-        self.assertEqual(len(annotation3.get_properties(False)), 2)
+        annotation3.add_field('smiles',prop_type='smiles')
+        self.assertNotEqual(annotation3.get_property('smiles'), input_fields['smiles'])
+        annotation3.add_field('id',active=False)
+        self.assertNotEqual(annotation3.get_property('id'), input_fields['id'])
+        self.assertEqual(len(annotation3.get_fields(False)), 2)
 
         output_JSONData = json.dumps(annotation3.to_json(), indent=4)
         output_json = json.loads(output_JSONData)
@@ -78,11 +78,11 @@ class MyTestCase(unittest.TestCase):
         print ('\n3.3. Transfer Fields Annotation to new Fields Annotation')
         annotation3_3 = FieldsDescriptorAnnotation('Supplier 1', 'A description', "")
         # Transfer active only
-        annotation3_3.add_properties(annotation3.get_properties())
-        self.assertEqual(annotation3.get_properties(), annotation3_3.get_properties())
+        annotation3_3.add_fields(annotation3.get_fields())
+        self.assertEqual(annotation3.get_fields(), annotation3_3.get_fields())
         # Transfer active and inactive
-        annotation3_3.add_properties(annotation3.get_properties(True))
-        self.assertEqual(annotation3.get_properties(True), annotation3_3.get_properties(True))
+        annotation3_3.add_fields(annotation3.get_fields(True))
+        self.assertEqual(annotation3.get_fields(True), annotation3_3.get_fields(True))
 
         print('\nTest 3.3 ok')
 
@@ -90,14 +90,14 @@ class MyTestCase(unittest.TestCase):
     def test_04_service_execution(self):
         print ('\n4. Service Execution Annotation')
         params = {'param1': 'p-value1', 'param2': 'p-value2'}
-        input_properties = {'smiles': {'type': 'smiles', 'description': 'standardized smiles',
+        input_fields = {'smiles': {'type': 'smiles', 'description': 'standardized smiles',
                                        'required': True, 'active': True},
                   'ID': {'type': 'string', 'description': 'Changed File Identifier',
                          'required': False, 'active': True}}
         annotation4 = ServiceExecutionAnnotation\
             ('Jupyter notebook', '1.0', 'User 1', 'service description',
              'www.example.com/service.html', params, 'Supplier 1', 'A description',
-             input_properties)
+             input_fields)
         self.assertEqual(annotation4.get_service(), 'Jupyter notebook')
         self.assertEqual(annotation4.get_service_parameters(), params)
         output_JSONData = json.dumps(annotation4.to_json(), indent=4)
@@ -137,7 +137,7 @@ class MyTestCase(unittest.TestCase):
                            '$id': 'https://example.com/product.schema.json',
                            'title': 'test', 'description': 'test description',
                            'type': 'object',
-                           'properties':
+                           'fields':
                                {'smiles': {'type': 'smiles', 'description': 'standardized smiles'},
                                 'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'},
                                 'ID': {'type': 'string', 'description': 'Changed File Identifier'}},
