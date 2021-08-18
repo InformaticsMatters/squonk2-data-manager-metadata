@@ -131,8 +131,48 @@ class MyTestCase(unittest.TestCase):
         print('\nTest 6 ok')
 
 
-    def test_07_json_schema (self):
-        print ('\n7. Test json schema extract from FieldsDescriptor')
+    def test_07_label_list (self):
+        print ('\n7. Test label list from LabelAnnotations')
+        labels = (self.metadata.get_labels())
+        self.assertEqual(len(labels), 1)
+        # add label2
+        label = LabelAnnotation('label2', 'value2')
+        self.metadata.add_annotation(label)
+        labels = (self.metadata.get_labels())
+        self.assertEqual(len(labels), 2)
+        # add label3 with empty value
+        label3 = LabelAnnotation('label3', '')
+        self.metadata.add_annotation(label3)
+        labels = (self.metadata.get_labels())
+        self.assertEqual(len(labels), 3)
+
+        # Change label2 value
+        label = LabelAnnotation('label2', 'value changed')
+        self.metadata.add_annotation(label)
+        labels = (self.metadata.get_labels())
+        self.assertEqual(len(labels), 3)
+        # Make label2 inactive
+        label = LabelAnnotation('label3', '', False)
+        self.metadata.add_annotation(label)
+        labels = (self.metadata.get_labels())
+        self.assertEqual(len(labels), 3)
+        print('self.metadata.get_labels()')
+
+        print('self.metadata.get_labels(active=True)')
+        labels = (self.metadata.get_labels(active=True))
+        self.assertEqual(len(labels), 2)
+
+        print('self.metadata.get_labels(active=True,labels_only=True)')
+        labels = (self.metadata.get_labels(True,True))
+        print(labels)
+        self.assertEqual(len(labels), 2)
+
+        print ('Number of labels is correct')
+        print('\nTest 7 ok')
+
+
+    def test_08_json_schema (self):
+        print ('\n8. Test json schema extract from FieldsDescriptor')
         expected_schema = {'$schema': 'http://json-schema.org/draft/2019-09/schema#',
                            '$id': 'https://example.com/product.schema.json',
                            'title': 'test', 'description': 'test description',
@@ -141,39 +181,16 @@ class MyTestCase(unittest.TestCase):
                                {'smiles': {'type': 'smiles', 'description': 'standardized smiles'},
                                 'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'},
                                 'ID': {'type': 'string', 'description': 'Changed File Identifier'}},
-                           'required': ['smiles', 'uuid']}
+                           'required': ['smiles', 'uuid'],
+                           'labels': [{'label': 'label2',
+                                       'value': 'value changed'},
+                                      {'label': 'label1',
+                                       'value': 'value1'}],
+                           }
         schema = (self.metadata.get_json_schema())
+        print(schema)
         self.assertEqual(schema, expected_schema)
         print ('Json Schema matches expected schema')
-        print('\nTest 7 ok')
-
-
-    def test_08_label_list (self):
-        print ('\n8. Test label list from LabelAnnotations')
-        labels = (self.metadata.get_labels())
-        self.assertEqual(len(labels), 1)
-        # add a different label
-        label = LabelAnnotation('label2', 'value2')
-        self.metadata.add_annotation(label)
-        labels = (self.metadata.get_labels())
-        self.assertEqual(len(labels), 2)
-        # Change label2 value
-        label = LabelAnnotation('label2', 'value changed')
-        self.metadata.add_annotation(label)
-        labels = (self.metadata.get_labels())
-        self.assertEqual(len(labels), 2)
-        # Make label2 inactive
-        label = LabelAnnotation('label2', 'value changed', False)
-        self.metadata.add_annotation(label)
-        labels = (self.metadata.get_labels(True))
-        self.assertEqual(len(labels), 1)
-        labels = (self.metadata.get_labels(False))
-        self.assertEqual(len(labels), 1)
-        labels = (self.metadata.get_labels())
-        self.assertEqual(len(labels), 2)
-        print(labels)
-
-        print ('Number of labels is correct')
         print('\nTest 8 ok')
 
 

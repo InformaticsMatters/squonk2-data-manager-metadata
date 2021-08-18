@@ -14,8 +14,8 @@ _SCHEMA_ID: str = 'https://example.com/product.schema.json'
 _ANNOTATIONS_EXT = '.annotations'
 
 
-# This is the basic structure of the rows FieldsDescriptorAnnotation fields list
-# That is indexed by the field name.
+# This is the basic structure of the rows FieldsDescriptorAnnotation fields
+# list that is indexed by the field name.
 FIELD_DICT = {'type': '', 'description': '', 'required': False,
                   'active': False}
 
@@ -38,8 +38,8 @@ def get_annotation_filename(filename: str) -> str:
 class Metadata:
     """Class Metadata
 
-    Purpose: Defines a list of metadata dnd annotations that can be serialized and saved in a
-    dataset.
+    Purpose: Defines a list of metadata dnd annotations that can be serialized
+    and saved in a dataset.
 
     """
     dataset_name: str = ''
@@ -71,7 +71,8 @@ class Metadata:
 
     def set_dataset_name(self, dataset_name: str):
         assert dataset_name
-        annotation = PropertyChangeAnnotation('dataset_name', self.dataset_name)
+        annotation = PropertyChangeAnnotation('dataset_name',
+                                              self.dataset_name)
         self.add_annotation(annotation)
         self.dataset_name = dataset_name
 
@@ -80,7 +81,8 @@ class Metadata:
 
     def set_dataset_uuid(self, dataset_uuid: str):
         assert dataset_uuid
-        annotation = PropertyChangeAnnotation('dataset_uuid', self.dataset_uuid)
+        annotation = PropertyChangeAnnotation('dataset_uuid',
+                                              self.dataset_uuid)
         self.add_annotation(annotation)
         self.dataset_uuid = dataset_uuid
 
@@ -105,7 +107,8 @@ class Metadata:
         return self.metadata_version
 
     def get_annotation(self, pos: int):
-        """ Get an annotation from the annotation list identified by the position.
+        """ Get an annotation from the annotation list identified by the
+        position.
         """
         return self.annotations[pos]
 
@@ -116,11 +119,12 @@ class Metadata:
         self.last_updated = datetime.datetime.utcnow()
 
     def get_annotations_dict(self, annotation_type=all):
-        """ Get a list of all annotations from the annotation list in dict format.
+        """ Get a list of all annotations from the annotation list in dict
+        format.
 
             The list can be filtered by annotation class.
-            Within an annotation class, the keyword arguments can be used to filter within
-            a particular class.
+            Within an annotation class, the keyword arguments can be used to
+            filter within a particular class.
         """
         anno_list = []
         for anno in self.annotations:
@@ -131,17 +135,20 @@ class Metadata:
         return anno_list
 
     def get_annotations_json(self, annotation_type=all):
-        """ Get a list of all annotations from the annotation list in json format.
+        """ Get a list of all annotations from the annotation list in json
+        format.
         """
         return json.dumps(self.get_annotations_dict(annotation_type))
 
     def _create_annotation(self, annotation_row: dict):
-        """ Creates an annotation object based on the dictionary and add to the annotations list.
+        """ Creates an annotation object based on the dictionary and add to the
+        annotations list.
         """
-        class_lookup = {'PropertyChangeAnnotation': PropertyChangeAnnotation,
-                        'LabelAnnotation': LabelAnnotation,
-                        'FieldsDescriptorAnnotation': FieldsDescriptorAnnotation,
-                        'ServiceExecutionAnnotation': ServiceExecutionAnnotation}
+        class_lookup = \
+            {'PropertyChangeAnnotation': PropertyChangeAnnotation,
+             'LabelAnnotation': LabelAnnotation,
+             'FieldsDescriptorAnnotation': FieldsDescriptorAnnotation,
+             'ServiceExecutionAnnotation': ServiceExecutionAnnotation}
 
         # Get class and original create data
         annotation_class = annotation_row['type']
@@ -153,7 +160,8 @@ class Metadata:
         del annotation_row['annotation_version']
 
         # Create new annotation for metadata using rest of original parameters
-        # and reset created datetime. This also effectively validates the content.
+        # and reset created datetime. This also effectively validates the
+        # content.
         annotation = class_lookup[annotation_class](**annotation_row)
         annotation.set_created(annotation_created)
         self.add_annotation(annotation)
@@ -161,10 +169,12 @@ class Metadata:
     def add_annotations(self, annotations: json):
         """ Add a list of annotations in json format to the annotation list
         """
-        # Note that this also validates the Json and returns a ValueError if not valid
+        # Note that this also validates the Json and returns a ValueError if
+        # not valid
         annotations_list = json.loads(annotations)
 
-        # If a single annotation is provided but it's simply not in a list then add it
+        # If a single annotation is provided but it's simply not in a list then
+        # add it
         if annotations.lstrip()[0] != '[':
             annotations_list = []
             annotations_list.append(json.loads(annotations))
@@ -174,15 +184,15 @@ class Metadata:
         self.last_updated = datetime.datetime.utcnow()
 
     def get_json_schema(self):
-        """ Returns the latest complete FieldsDescriptor as a dict of the json schema
-            as defined in https://json-schema.org/.
+        """ Returns the latest complete FieldsDescriptor as a dict of the json
+        schema as defined in https://json-schema.org/.
         """
 
-        # Process all FieldDescriptor Annotations in the Annotations list in order
-        # to retrieve all of the fields in the dataset. Add these to a single
-        # new FieldDescriptor that will have compilation of all fields.
-        # We can then extract the active fields from the final compiled FieldDescriptor to
-        # use in the json schema output.
+        # Process all FieldDescriptor Annotations in the Annotations list in
+        # order to retrieve all of the fields in the dataset. Add these to a
+        # single new FieldDescriptor that will have compilation of all fields.
+        # We can then extract the active fields from the final compiled
+        # FieldDescriptor to use in the json schema output.
         comp_descriptor = FieldsDescriptorAnnotation()
         for annotation in self.annotations:
             if annotation.get_type() == 'FieldsDescriptorAnnotation':
@@ -191,7 +201,8 @@ class Metadata:
         required = []
 
         for prop, value in comp_descriptor.get_fields(False).items():
-            fields[prop] = {'type': value['type'], 'description': value['description']}
+            fields[prop] = {'type': value['type'],
+                            'description': value['description']}
             if value['required']:
                 required.append(prop)
 
@@ -201,21 +212,24 @@ class Metadata:
                   'description': self.description,
                   "type": "object",
                   'fields': fields,
-                  'required': required}
+                  'required': required,
+                  'labels': self.get_labels(True, True)}
 
         return schema
 
-    def get_labels(self, active=None):
+    def get_labels(self, active=None, labels_only=False):
         """ Returns a list of the active/inactive Label Annotations.
             The last version of each label is returned.
-            If the last entry of the label annotation is marked as inactive then
-            the label is not returned in the list.
+            active not set, return complete set
+            active = true - filter for active
         """
         label_list = []
         label_set = set()
-        # Read through labels in reverse order and take the latest one for each label.
+        # Read through labels in reverse order and take the latest one for
+        # each label.
         for anno in reversed(self.annotations):
-            if anno.get_type() == 'LabelAnnotation' and (anno.get_label() not in label_set):
+            if anno.get_type() == 'LabelAnnotation' and (anno.get_label()
+                                                         not in label_set):
                 label_list.append(anno)
                 label_set.add(anno.get_label())
 
@@ -225,12 +239,12 @@ class Metadata:
                 if label.get_active() is False:
                     label_list.remove(label)
 
-        if active is False:
-            for label in label_list:
-                if label.get_active() is True:
-                    label_list.remove(label)
+        if labels_only:
+            return_dict = [label.to_label_dict() for label in label_list]
+        else:
+            return_dict = [label.to_dict() for label in label_list]
 
-        return [label.to_dict() for label in label_list]
+        return return_dict
 
     def to_dict(self):
         """Return principle data items in the form of a dictionary
@@ -252,10 +266,11 @@ class Metadata:
 
 
 class Annotation(ABC):
-    """Class Annotation - Abstract Base Class to enable annotation functionality
+    """Class Annotation - Abstract Base Class to enable annotation
+    functionality
 
-    Purpose: Annotations can be added to Metadata. They are defined as classes to that they can
-    have both fixed data and methods that work with the data.
+    Purpose: Annotations can be added to Metadata. They are defined as classes
+    so that they can have both fixed data and methods that work with the data.
 
     """
     created: datetime = 0
@@ -270,7 +285,8 @@ class Annotation(ABC):
         return self.__class__.__name__
 
     def set_created(self, created):
-        """This used only when transferring existing annotations to a new metadata instance.
+        """This used only when transferring existing annotations to a new
+        metadata instance.
         """
         self.created = datetime.datetime.fromisoformat(created)
 
@@ -313,7 +329,8 @@ class PropertyChangeAnnotation(Annotation):
 class LabelAnnotation(Annotation):
     """Class LabelAnnotation
 
-    Purpose: Object to create a simple label type of annotation to add to the metadata.
+    Purpose: Object to create a simple label type of annotation to add to the
+    metadata.
 
     """
     label: str = ''
@@ -335,6 +352,12 @@ class LabelAnnotation(Annotation):
 
     def get_active(self):
         return self.active
+
+    def to_label_dict(self):
+        """Return just significant label data items in the form of a dictionary
+        """
+        return {"label": self.label,
+                "value": self.value}
 
     def to_dict(self):
         """Return principle data items in the form of a dictionary
@@ -358,7 +381,8 @@ class FieldsDescriptorAnnotation(Annotation):
     description: str = ''
     fields: dict = {}
 
-    def __init__(self, origin: str = '', description: str = '', fields: dict = None):
+    def __init__(self, origin: str = '', description: str = '',
+                 fields: dict = None):
         self.origin = origin
         self.description = description
         if fields:
@@ -379,16 +403,18 @@ class FieldsDescriptorAnnotation(Annotation):
     def set_description(self, description):
         self.description = description
 
-    def add_field(self, field_name: str,
-                     active: bool = True,
-                     prop_type: str = None,
-                     description: str = None,
-                     required: bool = None):
+    def add_field(self,
+                  field_name: str,
+                  active: bool = True,
+                  prop_type: str = None,
+                  description: str = None,
+                  required: bool = None):
         """ Add an individual property to the fields list
         """
         assert field_name
         if field_name not in self.fields:
-            # Note that this has to be copied in or it will reference the same dict.
+            # Note that this has to be copied in or it will reference the same
+            # dict.
             self.fields[field_name] = copy.deepcopy(FIELD_DICT)
 
         self.fields[field_name]['active'] = active
@@ -410,16 +436,17 @@ class FieldsDescriptorAnnotation(Annotation):
         """
 
         for prop, values in new_fields.items():
-            # unpack the individual lines for processing, adding optional fields.
+            # unpack the individual lines for processing, adding optional
+            # fields.
             if 'description' not in values.keys():
                 values['description'] = ''
             if 'required' not in values.keys():
                 values['required'] = False
 
             self.add_field(prop, values['active'], values['type'],
-                              values['description'], values['required'])
+                           values['description'], values['required'])
 
-    def get_fields(self, get_all:bool = False):
+    def get_fields(self, get_all: bool = False):
         """ Get (all/only active) fields from the property list in dict format.
         """
         if get_all:
@@ -429,7 +456,7 @@ class FieldsDescriptorAnnotation(Annotation):
             active_fields = {}
             for prop, value in self.fields.items():
                 if value['active']:
-                    active_fields[prop]=value
+                    active_fields[prop] = value
             return active_fields
 
     def to_dict(self):
@@ -455,7 +482,7 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
     def __init__(self, service: str,
                  service_version: str,
                  service_user: str,
-                 service_name : str,
+                 service_name: str,
                  service_ref: str,
                  service_parameters: dict = None,
                  origin: str = '',
@@ -510,7 +537,8 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
         """Return principle data items in the form of a dictionary
         """
         return {**super().to_dict(),
-                "service": self.service, "service_version": self.service_version,
+                "service": self.service,
+                "service_version": self.service_version,
                 "service_user": self.service_user,
                 "service_name": self.service_name,
                 "service_ref": self.service_ref,
