@@ -141,9 +141,10 @@ class MyTestCase(unittest.TestCase):
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 2)
         # add label3 with empty value
-        label3 = LabelAnnotation('label3', '')
+        label3 = LabelAnnotation('label3')
         self.metadata.add_annotation(label3)
-        labels = (self.metadata.get_labels())
+        labels = (self.metadata.get_labels(labels_only=True))
+        print(labels)
         self.assertEqual(len(labels), 3)
 
         # Change label2 value
@@ -151,7 +152,7 @@ class MyTestCase(unittest.TestCase):
         self.metadata.add_annotation(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 3)
-        # Make label2 inactive
+        # Make label3 inactive
         label = LabelAnnotation('label3', '', False)
         self.metadata.add_annotation(label)
         labels = (self.metadata.get_labels())
@@ -182,10 +183,8 @@ class MyTestCase(unittest.TestCase):
                                 'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'},
                                 'ID': {'type': 'string', 'description': 'Changed File Identifier'}},
                            'required': ['smiles', 'uuid'],
-                           'labels': [{'label': 'label2',
-                                       'value': 'value changed'},
-                                      {'label': 'label1',
-                                       'value': 'value1'}],
+                           'labels': {'label2': 'value changed',
+                                      'label1': 'value1'},
                            }
         schema = (self.metadata.get_json_schema())
         print(schema)

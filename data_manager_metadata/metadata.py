@@ -240,7 +240,9 @@ class Metadata:
                     label_list.remove(label)
 
         if labels_only:
-            return_dict = [label.to_label_dict() for label in label_list]
+            return_dict = {}
+            for label in label_list:
+                return_dict.update({label.get_label(): label.get_value()})
         else:
             return_dict = [label.to_dict() for label in label_list]
 
@@ -334,10 +336,10 @@ class LabelAnnotation(Annotation):
 
     """
     label: str = ''
-    value: str = ''
+    value: str = None
     active: bool = True
 
-    def __init__(self, label: str, value: str = '', active: bool = True):
+    def __init__(self, label: str, value: str = None, active: bool = True):
         assert label
         self.label = label
         self.value = value
@@ -352,12 +354,6 @@ class LabelAnnotation(Annotation):
 
     def get_active(self):
         return self.active
-
-    def to_label_dict(self):
-        """Return just significant label data items in the form of a dictionary
-        """
-        return {"label": self.label,
-                "value": self.value}
 
     def to_dict(self):
         """Return principle data items in the form of a dictionary
