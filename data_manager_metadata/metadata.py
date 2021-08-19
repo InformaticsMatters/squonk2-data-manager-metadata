@@ -1,4 +1,8 @@
 """Data Manager Metadata Class Definitions.
+
+    Note that the Metadata class is pickled when saved in the database so that
+    we can hold the annotations as an ordered list of objects.
+    The other classes should be searialisable without pickling hopefully:
     Hints: https://pynative.com/make-python-class-json-serializable/
 """
 import json
@@ -17,7 +21,8 @@ _ANNOTATIONS_EXT = '.annotations'
 # This is the basic structure of the rows FieldsDescriptorAnnotation fields
 # list that is indexed by the field name.
 FIELD_DICT = {'type': '', 'description': '', 'required': False,
-                  'active': False}
+              'active': False}
+
 
 def metadata_version() -> str:
     return _METADATA_VERSION
