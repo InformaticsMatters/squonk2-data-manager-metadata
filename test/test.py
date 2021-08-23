@@ -193,7 +193,7 @@ class MyTestCase(unittest.TestCase):
         print('\nTest 8 ok')
 
 
-    def test_20_label_list (self):
+    def test_20_md_manage (self):
         print ('\n20. Tests for md_manage.py to be added')
         pass
 

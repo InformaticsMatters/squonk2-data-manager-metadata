@@ -161,8 +161,12 @@ class Metadata:
 
         # Remove from parameter list
         del annotation_row['type']
-        del annotation_row['created']
-        del annotation_row['annotation_version']
+
+        # Remove unused elements if they exist
+        if annotation_row['created']:
+            del annotation_row['created']
+        if annotation_row['annotation_version']:
+            del annotation_row['annotation_version']
 
         # Create new annotation for metadata using rest of original parameters
         # and reset created datetime. This also effectively validates the
