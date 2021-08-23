@@ -193,6 +193,23 @@ class MyTestCase(unittest.TestCase):
         print('\nTest 8 ok')
 
 
+    def test_09_simple_labels_in_schema(self):
+        print ('\n9. Create simple labels from schema')
+        annotations = json.dumps([{'type': 'LabelAnnotation',
+                        'label': 'label1',
+                        'value': 'value1',
+                        'active': True}])
+        labels = {'label1': 'value1'}
+        metadata_new = Metadata('New dataset', '0000-2222',
+                                'Created from the first dataset by a workflow', 'Harry')
+        metadata_new.add_annotations(annotations)
+        schema = (metadata_new.get_json_schema())
+        print(schema)
+        self.assertEqual(schema['labels'], labels)
+
+        print('\nTest 9 ok')
+
+
     def test_20_md_manage (self):
         print ('\n20. Tests for md_manage.py to be added')
         pass

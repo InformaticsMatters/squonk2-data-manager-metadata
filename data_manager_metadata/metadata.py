@@ -157,22 +157,23 @@ class Metadata:
 
         # Get class and original create data
         annotation_class = annotation_row['type']
-        annotation_created = annotation_row['created']
-
+        annotation_created = None
         # Remove from parameter list
         del annotation_row['type']
 
         # Remove unused elements if they exist
-        if annotation_row['created']:
+        if 'created' in annotation_row:
+            annotation_created = annotation_row['created']
             del annotation_row['created']
-        if annotation_row['annotation_version']:
+        if 'annotation_version' in annotation_row:
             del annotation_row['annotation_version']
 
         # Create new annotation for metadata using rest of original parameters
         # and reset created datetime. This also effectively validates the
         # content.
         annotation = class_lookup[annotation_class](**annotation_row)
-        annotation.set_created(annotation_created)
+        if annotation_created:
+            annotation.set_created(annotation_created)
         self.add_annotation(annotation)
 
     def add_annotations(self, annotations: json):
