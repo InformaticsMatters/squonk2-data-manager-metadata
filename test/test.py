@@ -173,7 +173,7 @@ class MyTestCase(unittest.TestCase):
 
 
     def test_08_json_schema (self):
-        print ('\n8. Test json schema extract from FieldsDescriptor')
+        print ('\n8. Test json schema extract from Metadata')
         expected_schema = {'$schema': 'http://json-schema.org/draft/2019-09/schema#',
                            '$id': 'https://example.com/product.schema.json',
                            'title': 'test', 'description': 'test description',
@@ -208,6 +208,31 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(schema['labels'], labels)
 
         print('\nTest 9 ok')
+
+
+    def test_10_compiledd_fields (self):
+        print ('\n10. Test compiled fields descriptor extract from Metadata')
+        expected_annotation = \
+            {'fields': {'smiles':
+                            {'type': 'smiles',
+                             'description': 'standardized smiles',
+                             'required': True,
+                             'active': True},
+                        'uuid':
+                            {'type': 'uuid',
+                             'description': 'Molecule Identifier',
+                             'required': True,
+                             'active': True},
+                        'ID':
+                            {'type': 'string',
+                             'description': 'Changed File Identifier',
+                             'required': False,
+                             'active': True}}}
+        anno = (self.metadata.get_compiled_fields())
+        print(anno)
+        self.assertEqual(anno['fields'], expected_annotation['fields'])
+        print ('Compiled fields matches expected fields')
+        print('\nTest 10 ok')
 
 
     def test_20_md_manage (self):

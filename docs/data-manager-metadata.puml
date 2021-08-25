@@ -17,6 +17,7 @@ class Metadata {
     get_annotations_json() : json
     add_annotations(json)
     get_json_schema(): dict
+    get_compiled_fields(): dict
     get_labels(): dict
     to_dict()
     to_json()

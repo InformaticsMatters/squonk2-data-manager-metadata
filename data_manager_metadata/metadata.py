@@ -194,8 +194,8 @@ class Metadata:
         self.last_updated = datetime.datetime.utcnow()
 
     def get_json_schema(self):
-        """ Returns the latest complete FieldsDescriptor as a dict of the json
-        schema as defined in https://json-schema.org/.
+        """ Returns the latest complete FieldsDescriptor and labels as a dict
+        of the json schema as defined in https://json-schema.org/.
         """
 
         # Process all FieldDescriptor Annotations in the Annotations list in
@@ -226,6 +226,22 @@ class Metadata:
                   'labels': self.get_labels(True, True)}
 
         return schema
+
+    def get_compiled_fields(self):
+        """ Returns the latest complete FieldsDescriptor as a dict of the json
+        schema as defined in https://json-schema.org/.
+        """
+
+        # Process all FieldDescriptor Annotations in the Annotations list in
+        # order to retrieve all of the fields in the dataset. Add these to a
+        # single new FieldDescriptor that will have compilation of all fields.
+        # We can then extract the active fields from the final compiled
+        # FieldDescriptor
+        comp_descriptor = FieldsDescriptorAnnotation()
+        for annotation in self.annotations:
+            if annotation.get_type() == 'FieldsDescriptorAnnotation':
+                comp_descriptor.add_fields(annotation.get_fields())
+        return comp_descriptor.to_dict()
 
     def get_labels(self, active=None, labels_only=False):
         """ Returns a list of the active/inactive Label Annotations.
