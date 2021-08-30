@@ -47,14 +47,6 @@ class Metadata:
     and saved in a dataset.
 
     """
-    dataset_name: str = ''
-    dataset_uuid: str = ''
-    description: str = ''
-    created: datetime = 0
-    last_updated: datetime = 0
-    created_by: str = ''
-    metadata_version: str = ''
-    annotations: list = []
 
     def __init__(self, dataset_name: str, dataset_uuid: str, description: str,
                  created_by: str):
@@ -223,7 +215,7 @@ class Metadata:
                   "type": "object",
                   'fields': fields,
                   'required': required,
-                  'labels': self.get_labels(True, True)}
+                  'labels': self.get_labels(active=True, labels_only=True)}
 
         return schema
 
@@ -301,8 +293,6 @@ class Annotation(ABC):
     so that they can have both fixed data and methods that work with the data.
 
     """
-    created: datetime = 0
-    annotation_version: str = ''
 
     @abstractmethod
     def __init__(self):
@@ -337,8 +327,8 @@ class PropertyChangeAnnotation(Annotation):
     Purpose: A simple annotation used when a property changes in the metadata.
 
     """
-    meta_property: str = ''
-    previous_value: str = ''
+    # meta_property: str = ''
+    # previous_value: str = ''
 
     def __init__(self, meta_property: str, previous_value: str):
         assert property
@@ -361,9 +351,6 @@ class LabelAnnotation(Annotation):
     metadata.
 
     """
-    label: str = ''
-    value: str = None
-    active: bool = True
 
     def __init__(self, label: str, value: str = None, active: bool = True):
         assert label
@@ -399,9 +386,6 @@ class FieldsDescriptorAnnotation(Annotation):
     { "name": string, "type": string, "description": string, "active": boolean}
 
     """
-    origin: str = ''
-    description: str = ''
-    fields: dict = {}
 
     def __init__(self, origin: str = '', description: str = '',
                  fields: dict = None):
@@ -456,6 +440,7 @@ class FieldsDescriptorAnnotation(Annotation):
         """ Add a dictionary of additions/updates to the fields list
             fields.
         """
+        self.fields = {}
 
         for prop, values in new_fields.items():
             # unpack the individual lines for processing, adding optional
@@ -494,12 +479,6 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
     Purpose: Object to add a Field Descriptor annotation to the metadata.
 
     """
-    service: str = ''
-    service_version: str = ''
-    service_user: str = ''
-    service_name: str = ''
-    service_ref: str = ''
-    service_parameters: dict = {}
 
     def __init__(self, service: str,
                  service_version: str,

@@ -135,29 +135,49 @@ class MyTestCase(unittest.TestCase):
         print ('\n7. Test label list from LabelAnnotations')
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 1)
-        # add label2
+
+        print('add label2')
         label = LabelAnnotation('label2', 'value2')
         self.metadata.add_annotation(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 2)
-        # add label3 with empty value
+
+        print('add label3 with empty value')
         label3 = LabelAnnotation('label3')
         self.metadata.add_annotation(label3)
         labels = (self.metadata.get_labels(labels_only=True))
-        print(labels)
         self.assertEqual(len(labels), 3)
 
-        # Change label2 value
+        print('Change label2 value')
         label = LabelAnnotation('label2', 'value changed')
         self.metadata.add_annotation(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 3)
-        # Make label3 inactive
-        label = LabelAnnotation('label3', '', False)
+
+        print('Make label3 inactive')
+        label = LabelAnnotation('label3', active=False)
         self.metadata.add_annotation(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 3)
-        print('self.metadata.get_labels()')
+        labels = (self.metadata.get_labels(active=True))
+        self.assertEqual(len(labels), 2)
+
+        print('Make label3 active again')
+        label = LabelAnnotation('label3', active=True)
+        self.metadata.add_annotation(label)
+        labels = (self.metadata.get_labels())
+        self.assertEqual(len(labels), 3)
+        labels = (self.metadata.get_labels(active=True))
+        self.assertEqual(len(labels), 3)
+
+        print('Make label3 inactive again')
+        label = LabelAnnotation('label3', active=False)
+        self.metadata.add_annotation(label)
+        labels = (self.metadata.get_labels())
+        print(labels)
+        self.assertEqual(len(labels), 3)
+        labels = (self.metadata.get_labels(active=True))
+        self.assertEqual(len(labels), 2)
 
         print('self.metadata.get_labels(active=True)')
         labels = (self.metadata.get_labels(active=True))
@@ -180,8 +200,7 @@ class MyTestCase(unittest.TestCase):
                            'type': 'object',
                            'fields':
                                {'smiles': {'type': 'smiles', 'description': 'standardized smiles'},
-                                'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'},
-                                'ID': {'type': 'string', 'description': 'Changed File Identifier'}},
+                                'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'}},
                            'required': ['smiles', 'uuid'],
                            'labels': {'label2': 'value changed',
                                       'label1': 'value1'},
@@ -210,7 +229,7 @@ class MyTestCase(unittest.TestCase):
         print('\nTest 9 ok')
 
 
-    def test_10_compiledd_fields (self):
+    def test_10_compiled_fields (self):
         print ('\n10. Test compiled fields descriptor extract from Metadata')
         expected_annotation = \
             {'fields': {'smiles':
@@ -222,18 +241,60 @@ class MyTestCase(unittest.TestCase):
                             {'type': 'uuid',
                              'description': 'Molecule Identifier',
                              'required': True,
-                             'active': True},
-                        'ID':
-                            {'type': 'string',
-                             'description': 'Changed File Identifier',
-                             'required': False,
                              'active': True}}}
         anno = (self.metadata.get_compiled_fields())
         print(anno)
         self.assertEqual(anno['fields'], expected_annotation['fields'])
         print ('Compiled fields matches expected fields')
+
+        with open('testfile.annotations', "w") as anno_file:
+            json.dump(anno, anno_file)
+        with open('testfile.annotations', "r") as anno_file:
+            self.metadata.add_annotations(anno_file.read())
+            schema = (self.metadata.get_json_schema())
+            print(schema)
+
         print('\nTest 10 ok')
 
+    def test_11_context (self):
+        print ('\n11. Test annotations context and order')
+        expected_fields1 = \
+            {'fields': {'molecule':
+                            {'type': 'object',
+                             'description': '',
+                             'required': False,
+                             'active': True},
+                        'uuid':
+                            {'type': 'text',
+                             'description': '',
+                             'required': False,
+                             'active': True}}}
+
+        expected_fields2 = \
+            {'fields': {'smiles':
+                            {'type': 'text',
+                             'description': '',
+                             'required': False,
+                             'active': True}}}
+
+        metadata1 = Metadata('Dataset 1', '0000-1111',
+                             '', 'Tom')
+        metadata2 = Metadata('Dataset 2', '0000-2222',
+                             '', 'Dick')
+        with open('test/input/test1.annotations', "r") as anno_file:
+            print ('metadata 1')
+            metadata1.add_annotations(anno_file.read())
+            fields = (metadata1.get_compiled_fields())
+            print(fields)
+            self.assertEqual(fields['fields'], expected_fields1['fields'])
+        with open('test/input/test2.annotations', "r") as anno_file_2:
+            print ('metadata 2')
+            metadata2.add_annotations(anno_file_2.read())
+            fields = (metadata2.get_compiled_fields())
+            print(fields)
+            self.assertEqual(fields['fields'], expected_fields2['fields'])
+
+        print('\nTest 11 ok')
 
     def test_20_md_manage (self):
         print ('\n20. Tests for md_manage.py to be added')
