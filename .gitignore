@@ -132,3 +132,4 @@ dmypy.json
 /metadata.json
 /annotation.json
 /test/output/*
+/testfile.annotations

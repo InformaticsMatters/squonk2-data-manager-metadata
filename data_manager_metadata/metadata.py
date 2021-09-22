@@ -253,7 +253,7 @@ class Metadata:
 
         # If not active then filter any inactive labels
         if active is True:
-            for label in label_list:
+            for label in reversed(label_list):
                 if label.get_active() is False:
                     label_list.remove(label)
 
