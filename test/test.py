@@ -6,6 +6,8 @@ from data_manager_metadata.metadata import (Metadata,
                                             FieldsDescriptorAnnotation,
                                             ServiceExecutionAnnotation)
 
+from data_manager_metadata.annotation_utils import est_schema_field_type
+
 class MyTestCase(unittest.TestCase):
 
     metadata = Metadata('test', '0000-1111', '', 'Bob')
@@ -312,8 +314,21 @@ class MyTestCase(unittest.TestCase):
 
         print('\nTest 11 ok')
 
-    def test_20_md_manage (self):
-        print ('\n20. Tests for md_manage.py to be added')
+    def test_20_annotation_utilities (self):
+        print ('\n20. Tests for field types')
+        self.assertEqual(est_schema_field_type('1'),'integer')
+        self.assertEqual(est_schema_field_type('1.1'),'number')
+        self.assertEqual(est_schema_field_type('True'),'boolean')
+        self.assertEqual(est_schema_field_type('False'),'boolean')
+        self.assertEqual(
+            est_schema_field_type('O=C(CSCc1ccc(Cl)s1)N1CCC(O)CC1'),'string')
+        self.assertEqual(est_schema_field_type('1,2,3'),'array')
+        self.assertEqual(
+            est_schema_field_type('ID1234'),'string')
+        print('\nTest 20 ok')
+
+    def test_30_md_manage (self):
+        print ('\n30. Tests for md_manage.py to be added')
         pass
 
 if __name__ == '__main__':
