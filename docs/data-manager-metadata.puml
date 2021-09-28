@@ -61,12 +61,12 @@ class FieldsDescriptorAnnotation {
     origin : String
     description : String
     properties : Dict
-    get/set_origin()
-    get/set_description()
-    add_property(name, active, type, description)
-    get_property(name) : dict
-    add_properties(dict)
-    get_properties() : dict
+    get/set/validate_origin()
+    get/set/validate_description()
+    add/validate_field(name, active, type, description)
+    get_field(name) : dict
+    add_fields(dict)
+    get_fields() : dict
     to_dict()
 }
 
@@ -77,15 +77,24 @@ class ServiceExecutionAnnotation {
     *service_description : String
     *service_ref : String
     service_parameters : Dict
-    get/set_service()
-    get/set_version()
-    get/set_user()
-    get/set_service_description()
-    get/set_service_ref()
+    get/validate_service()
+    get/validate_service_version()
+    get/validate_service_user()
+    get/validate_service_description()
+    get/validate_service_ref()
     get/set_parameters()
     to_yaml()
     to_dict()
 }
+
+class AnnotationValidationError  {
+    *annotation_type : String
+    *error : String
+    *field : String
+    *message : String
+}
+note bottom: Raised when an error is\nencountered validating input
+
 
 Metadata  |o..|{   Annotation
 Annotation <|-- LabelAnnotation

@@ -1,1 +1,1 @@
-{"type": "FieldsDescriptorAnnotation", "created": "2021-08-26T13:45:16.589382", "annotation_version": "0.0.1", "origin": "Test 2", "description": "", "fields": {"smiles": {"type": "text", "description": "", "required": false, "active": true}}}
+{"type": "FieldsDescriptorAnnotation", "created": "2021-08-26T13:45:16.589382", "annotation_version": "0.0.1", "origin": "Test 2", "description": "", "fields": {"smiles": {"type": "string", "description": "", "required": false, "active": true}}}

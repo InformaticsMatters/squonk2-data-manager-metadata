@@ -10,6 +10,10 @@ import datetime
 import yaml
 import copy
 from abc import ABC, abstractmethod
+import re
+
+from .exceptions import (ANNOTATION_ERRORS,
+                         AnnotationValidationError)
 
 _METADATA_VERSION: str = '0.0.1'
 _ANNOTATION_VERSION: str = '0.0.1'
@@ -353,11 +357,24 @@ class LabelAnnotation(Annotation):
     """
 
     def __init__(self, label: str, value: str = None, active: bool = True):
-        assert label
-        self.label = label
+        self.validate(label, value)
+        self.label = label.lower()
         self.value = value
         self.active = active
         super().__init__()
+
+    def validate(self, label: str, value: str = None):
+        """Validate main data items
+        """
+
+        if not re.match(ANNOTATION_ERRORS['LabelAnnotation']['1']['regex'],
+                        label):
+            raise AnnotationValidationError('LabelAnnotation','1','label')
+
+        if value and not \
+                re.match(ANNOTATION_ERRORS['LabelAnnotation']['2']['regex'],
+                        value):
+            raise AnnotationValidationError('LabelAnnotation','2','value')
 
     def get_label(self):
         return self.label
@@ -389,7 +406,10 @@ class FieldsDescriptorAnnotation(Annotation):
 
     def __init__(self, origin: str = '', description: str = '',
                  fields: dict = None):
+
+        self.validate_origin(origin)
         self.origin = origin
+        self.validate_description(description)
         self.description = description
         if fields:
             self.add_fields(fields)
@@ -400,14 +420,58 @@ class FieldsDescriptorAnnotation(Annotation):
     def get_origin(self):
         return self.origin
 
+    def validate_origin(self, origin: str):
+        if not re.match(
+                ANNOTATION_ERRORS['FieldsDescriptorAnnotation']['1']['regex'],
+                origin):
+            raise AnnotationValidationError(
+                'FieldsDescriptorAnnotation','1','origin')
+
     def set_origin(self, origin):
+        self.validate_origin(origin)
         self.origin = origin
 
     def get_description(self):
         return self.description
 
+    def validate_description(self, description: str):
+        if not re.match(
+                ANNOTATION_ERRORS['FieldsDescriptorAnnotation']['2']['regex'],
+                description):
+            raise AnnotationValidationError(
+                'FieldsDescriptorAnnotation','2','description')
+
     def set_description(self, description):
         self.description = description
+
+    def validate_field(self, field_name: str,
+                       prop_type: str = None,
+                       description: str = None):
+        """ Validate an additions/updates to a field
+        """
+
+        # field_name is required to be between 1 and 12 characters
+        if not re.match(
+            ANNOTATION_ERRORS['FieldsDescriptorAnnotation']['3']['regex'],
+                field_name):
+            raise AnnotationValidationError(
+                'FieldsDescriptorAnnotation', '3', 'field_name', field_name)
+
+        # type is enumerated. This can be omitted if updating an existing field
+        if prop_type:
+            if prop_type.lower() not in\
+                    ANNOTATION_ERRORS['FieldsDescriptorAnnotation']['4']['enum']:
+                raise AnnotationValidationError(
+                    'FieldsDescriptorAnnotation', '4', 'type', field_name)
+
+        # description can be omitted but if it's there it must be < 255
+        if description:
+            if not re.match(
+                ANNOTATION_ERRORS['FieldsDescriptorAnnotation']['5']['regex'],
+                    description):
+                raise AnnotationValidationError(
+                    'FieldsDescriptorAnnotation', '5', 'description',
+                    field_name)
 
     def add_field(self,
                   field_name: str,
@@ -417,15 +481,20 @@ class FieldsDescriptorAnnotation(Annotation):
                   required: bool = None):
         """ Add an individual property to the fields list
         """
-        assert field_name
+
+        # validate the field data
+        self.validate_field(field_name, prop_type, description)
+
+        # Add to list
         if field_name not in self.fields:
             # Note that this has to be copied in or it will reference the same
             # dict.
             self.fields[field_name] = copy.deepcopy(FIELD_DICT)
 
         self.fields[field_name]['active'] = active
+
         if prop_type:
-            self.fields[field_name]['type'] = prop_type
+            self.fields[field_name]['type'] = prop_type.lower()
         if description:
             self.fields[field_name]['description'] = description
         if required:
@@ -490,15 +559,15 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
                  description: str = '',
                  fields: list = None):
 
-        assert service
-        assert service_version
-        assert service_user
-        assert service_name
-        assert service_ref
+        self.validate_service(service)
         self.service = service
+        self.validate_service_version(service_version)
         self.service_version = service_version
+        self.validate_service_user(service_user)
         self.service_user = service_user
+        self.validate_service_name(service_name)
         self.service_name = service_name
+        self.validate_service_ref(service_ref)
         self.service_ref = service_ref
         if service_parameters:
             self.service_parameters = copy.deepcopy(service_parameters)
@@ -509,21 +578,52 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
     def get_service(self):
         return self.service
 
-    def set_service(self, service: str):
-        assert service
-        self.service = service
+    def validate_service(self, service: str):
+        if not re.match(
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['1']['regex'],
+                service):
+            raise AnnotationValidationError(
+                'ServiceExecutionAnnotation','1','service')
 
     def get_service_version(self):
         return self.service_version
 
-    def set_service_version(self, service_version: str):
-        self.service_version = service_version
+    def validate_service_version(self, service_version: str):
+        if not re.match(
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['2']['regex'],
+                service_version):
+            raise AnnotationValidationError(
+                'ServiceExecutionAnnotation','2','service_version')
 
     def get_service_user(self):
         return self.service_user
 
-    def set_service_user(self, service_user: str):
-        self.service_user = service_user
+    def validate_service_user(self, service_user: str):
+        if not re.match(
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['3']['regex'],
+                service_user):
+            raise AnnotationValidationError(
+                'ServiceExecutionAnnotation','3','service_user')
+
+    def get_service_name(self):
+        return self.service_name
+
+    def validate_service_name(self, service_name: str):
+        if not re.match(
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['4']['regex'],
+                service_name):
+            raise AnnotationValidationError(
+                'ServiceExecutionAnnotation','4','service_name')
+
+    def get_service_ref(self):
+        return self.service_ref
+
+    def validate_service_ref(self, service_ref: str):
+        if not re.match(
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['5']['regex'],
+                service_ref):
+            raise AnnotationValidationError(
+                'ServiceExecutionAnnotation','5','service_ref')
 
     def get_service_parameters(self):
         return self.service_parameters

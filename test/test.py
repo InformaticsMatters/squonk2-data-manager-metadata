@@ -7,6 +7,8 @@ from data_manager_metadata.metadata import (Metadata,
                                             ServiceExecutionAnnotation)
 
 from data_manager_metadata.annotation_utils import est_schema_field_type
+from data_manager_metadata.exceptions import (ANNOTATION_ERRORS,
+                                              AnnotationValidationError)
 
 class MyTestCase(unittest.TestCase):
 
@@ -45,12 +47,23 @@ class MyTestCase(unittest.TestCase):
         print (self.metadata.to_json())
         print('\nTest 2.2 ok')
 
+        print ('\n2.3. Validation Errors')
+        try:
+            annotationx = LabelAnnotation('label1toolonganame', 'value1')
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'LabelAnnotation')
+            self.assertEqual(
+                e.message,ANNOTATION_ERRORS['LabelAnnotation']['1']['message'])
+        else:
+            self.fail("This should normally fail")
+
+        print('\nTest 2.3 ok')
 
     def test_03_fields_annotations(self):
         print ('\n3.1. FieldsDescriptor Annotation')
         input_fields = {'smiles': {'type': 'string', 'description': 'standardized smiles',
                                        'required': True, 'active': True},
-                            'uuid': {'type': 'uuid', 'description': 'Molecule Identifier',
+                            'uuid': {'type': 'string', 'description': 'Molecule Identifier',
                                    'required': True, 'active': True},
                             'id': {'type': 'string', 'description': 'File Identifier',
                                    'required': False, 'active': True},
@@ -61,8 +74,11 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(annotation3.get_property('smiles'), input_fields['smiles'])
         self.assertEqual(annotation3.get_property('uuid'), input_fields['uuid'])
 
-        annotation3.add_field('smiles',prop_type='smiles')
-        self.assertNotEqual(annotation3.get_property('smiles'), input_fields['smiles'])
+        # change field type
+        annotation3.add_field('id',prop_type='number')
+        self.assertNotEqual(annotation3.get_property('id'), input_fields['id'])
+
+        # set to inactive
         annotation3.add_field('id',active=False)
         self.assertNotEqual(annotation3.get_property('id'), input_fields['id'])
         self.assertEqual(len(annotation3.get_fields(False)), 2)
@@ -85,14 +101,68 @@ class MyTestCase(unittest.TestCase):
         # Transfer active and inactive
         annotation3_3.add_fields(annotation3.get_fields(True))
         self.assertEqual(annotation3.get_fields(True), annotation3_3.get_fields(True))
-
         print('\nTest 3.3 ok')
+
+        print ('\n3.4. Validation Errors')
+        invalid_field = "x" * 256
+
+        try:
+            annotationx = FieldsDescriptorAnnotation(invalid_field,
+                                                     'A description',
+                                                     input_fields)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'FieldsDescriptorAnnotation')
+            self.assertEqual(
+                e.message,
+                ANNOTATION_ERRORS['FieldsDescriptorAnnotation']['1']['message'])
+        else:
+            self.fail("This should normally fail")
+
+        try:
+            annotationx = FieldsDescriptorAnnotation('supplier 1',
+                                                     invalid_field,
+                                                     input_fields)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'FieldsDescriptorAnnotation')
+            self.assertEqual(
+                e.message,
+                ANNOTATION_ERRORS['FieldsDescriptorAnnotation']['2']['message'])
+        else:
+            self.fail("This should normally fail")
+
+        try:
+            input_fieldx = {'smilesveryxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx':
+                                {'type': 'string',
+                                 'description': 'standardized smiles',
+                                 'required': True, 'active': True}}
+            annotationx = FieldsDescriptorAnnotation('Supplier x', 'A description', input_fieldx)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'FieldsDescriptorAnnotation')
+            self.assertEqual(
+                e.message,
+                'Field name: smilesveryxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, length must be from 1 to 50 characters')
+        else:
+            self.fail("This should normally fail")
+
+        try:
+            input_fieldy = {'smiles':
+                                {'type': 'blob',
+                                 'description': 'standardized smiles',
+                                 'required': True, 'active': True}}
+            annotationx = FieldsDescriptorAnnotation('Supplier x', 'A description', input_fieldy)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'FieldsDescriptorAnnotation')
+            self.assertEqual(e.error, '4')
+        else:
+            self.fail("This should normally fail")
+
+        print('\nTest 3.4 ok')
 
 
     def test_04_service_execution(self):
         print ('\n4. Service Execution Annotation')
         params = {'param1': 'p-value1', 'param2': 'p-value2'}
-        input_fields = {'smiles': {'type': 'smiles', 'description': 'standardized smiles',
+        input_fields = {'smiles': {'type': 'string', 'description': 'standardized smiles',
                                        'required': True, 'active': True},
                   'ID': {'type': 'string', 'description': 'Changed File Identifier',
                          'required': False, 'active': True}}
@@ -111,6 +181,76 @@ class MyTestCase(unittest.TestCase):
         self.metadata.add_annotation(annotation4)
         self.assertEqual(len(self.metadata.to_dict()["annotations"]), 5)
         print('\nTest 4.2 ok')
+
+        print ('\n4.3. Validation Errors')
+        invalid_field = "x" * 256
+
+        try:
+            annotationx = ServiceExecutionAnnotation\
+            ('', '1.0', 'User 1', 'service description',
+             'www.example.com/service.html', params, 'Supplier 1', 'A description',
+             input_fields)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'ServiceExecutionAnnotation')
+            self.assertEqual(
+                e.message,
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['1']['message'])
+        else:
+            self.fail("This should normally fail")
+
+        try:
+            annotationx = ServiceExecutionAnnotation\
+            ('Jupyter notebook', invalid_field, 'User 1', 'service description',
+             'www.example.com/service.html', params, 'Supplier 1', 'A description',
+             input_fields)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'ServiceExecutionAnnotation')
+            self.assertEqual(
+                e.message,
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['2']['message'])
+        else:
+            self.fail("This should normally fail")
+
+        try:
+            annotationx = ServiceExecutionAnnotation\
+            ('Jupyter notebook', '1.0', invalid_field, 'service description',
+             'www.example.com/service.html', params, 'Supplier 1', 'A description',
+             input_fields)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'ServiceExecutionAnnotation')
+            self.assertEqual(
+                e.message,
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['3']['message'])
+        else:
+            self.fail("This should normally fail")
+
+        try:
+            annotationx = ServiceExecutionAnnotation\
+            ('Jupyter notebook', '1.0', 'User 1', invalid_field,
+             'www.example.com/service.html', params, 'Supplier 1', 'A description',
+             input_fields)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'ServiceExecutionAnnotation')
+            self.assertEqual(
+                e.message,
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['4']['message'])
+        else:
+            self.fail("This should normally fail")
+
+        try:
+            annotationx = ServiceExecutionAnnotation\
+            ('Jupyter notebook', '1.0', 'User 1', 'service description',
+             invalid_field, params, 'Supplier 1', 'A description',
+             input_fields)
+        except AnnotationValidationError as e:
+            self.assertEqual(e.annotation_type, 'ServiceExecutionAnnotation')
+            self.assertEqual(
+                e.message,
+                ANNOTATION_ERRORS['ServiceExecutionAnnotation']['5']['message'])
+        else:
+            self.fail("This should normally fail")
+
+        print('\nTest 4.3 ok')
 
 
     def test_05_load_annotations_in_new_metadata(self):
@@ -217,8 +357,8 @@ class MyTestCase(unittest.TestCase):
                            'title': 'test', 'description': 'test description',
                            'type': 'object',
                            'fields':
-                               {'smiles': {'type': 'smiles', 'description': 'standardized smiles'},
-                                'uuid': {'type': 'uuid', 'description': 'Molecule Identifier'}},
+                               {'smiles': {'type': 'string', 'description': 'standardized smiles'},
+                                'uuid': {'type': 'string', 'description': 'Molecule Identifier'}},
                            'required': ['smiles', 'uuid'],
                            'labels': {'label2': 'value changed',
                                       'label1': 'value1'},
@@ -251,12 +391,12 @@ class MyTestCase(unittest.TestCase):
         print ('\n10. Test compiled fields descriptor extract from Metadata')
         expected_annotation = \
             {'fields': {'smiles':
-                            {'type': 'smiles',
+                            {'type': 'string',
                              'description': 'standardized smiles',
                              'required': True,
                              'active': True},
                         'uuid':
-                            {'type': 'uuid',
+                            {'type': 'string',
                              'description': 'Molecule Identifier',
                              'required': True,
                              'active': True}}}
@@ -283,14 +423,14 @@ class MyTestCase(unittest.TestCase):
                              'required': False,
                              'active': True},
                         'uuid':
-                            {'type': 'text',
+                            {'type': 'string',
                              'description': '',
                              'required': False,
                              'active': True}}}
 
         expected_fields2 = \
             {'fields': {'smiles':
-                            {'type': 'text',
+                            {'type': 'string',
                              'description': '',
                              'required': False,
                              'active': True}}}
