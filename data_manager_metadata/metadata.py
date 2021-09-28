@@ -202,7 +202,11 @@ class Metadata:
         comp_descriptor = FieldsDescriptorAnnotation()
         for annotation in self.annotations:
             if annotation.get_type() == 'FieldsDescriptorAnnotation':
-                comp_descriptor.add_fields(annotation.get_fields())
+                # Allow for validation errors in old field descriptors.
+                try:
+                    comp_descriptor.add_fields(annotation.get_fields())
+                except AnnotationValidationError:
+                    pass
         fields = {}
         required = []
 
