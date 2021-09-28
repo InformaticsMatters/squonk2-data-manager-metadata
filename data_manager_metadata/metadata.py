@@ -235,12 +235,16 @@ class Metadata:
         # Process all FieldDescriptor Annotations in the Annotations list in
         # order to retrieve all of the fields in the dataset. Add these to a
         # single new FieldDescriptor that will have compilation of all fields.
-        # We can then extract the active fields from the final compiled
-        # FieldDescriptor
+
         comp_descriptor = FieldsDescriptorAnnotation()
         for annotation in self.annotations:
             if annotation.get_type() == 'FieldsDescriptorAnnotation':
-                comp_descriptor.add_fields(annotation.get_fields())
+                # Allow for validation errors in old field descriptors.
+                try:
+                    comp_descriptor.add_fields(annotation.get_fields())
+                except AnnotationValidationError:
+                    pass
+
         return comp_descriptor.to_dict()
 
     def get_labels(self, active=None, labels_only=False):
