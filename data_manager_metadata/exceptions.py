@@ -29,7 +29,7 @@ ANNOTATION_ERRORS \
             '2': {'field': 'description', 'regex':'^.{0,255}$',
                   'message': 'Description length must be from 1 to 255 '
                              'characters'},
-            '3': {'field': 'field_name', 'regex': r'^\w{1,50}$',
+            '3': {'field': 'field_name', 'regex': r'^.{1,50}$',
                   'message': 'Field name: {}, length must be from 1 to 50 '
                              'characters'},
             '4': {'field': 'type', 'enum': SCHEMA_FIELD_TYPES,
