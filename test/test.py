@@ -167,7 +167,7 @@ class MyTestCase(unittest.TestCase):
                   'ID': {'type': 'string', 'description': 'Changed File Identifier',
                          'required': False, 'active': True}}
         annotation4 = ServiceExecutionAnnotation\
-            ('Jupyter notebook', '1.0', 'User 1', 'service description',
+            ('Jupyter notebook', '1.0', 'User-1', 'service description',
              'www.example.com/service.html', params, 'Supplier 1', 'A description',
              input_fields)
         self.assertEqual(annotation4.get_service(), 'Jupyter notebook')

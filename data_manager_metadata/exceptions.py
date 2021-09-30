@@ -42,13 +42,13 @@ ANNOTATION_ERRORS \
             },
 
        'ServiceExecutionAnnotation':
-           {'1': {'field': 'service', 'regex': r'^[\w .-]{1,50}$',
-                  'message': 'Service length must be from 1 to 50 characters'},
-            '2': {'field': 'service_version', r'regex': r'^[\w .-]{1,50}$',
-                  'message': 'Service version length must be from 1 to 50 '
+           {'1': {'field': 'service', 'regex': r'^.{1,80}$',
+                  'message': 'Service length must be from 1 to 80 characters'},
+            '2': {'field': 'service_version', r'regex': r'^.{1,80}$',
+                  'message': 'Service version length must be from 1 to 80 '
                              'characters'},
-            '3': {'field': 'service_user', 'regex': r'^[\w ]{1,50}$',
-                  'message': 'Service user name length must be from 1 to 50 '
+            '3': {'field': 'service_user', 'regex': r'^.{1,80}$',
+                  'message': 'Service user name length must be from 1 to 80 '
                              'characters'},
             '4': {'field': 'service_name', 'regex':'^.{1,255}$',
                   'message': 'Service name length must be from 1 to 255 '
