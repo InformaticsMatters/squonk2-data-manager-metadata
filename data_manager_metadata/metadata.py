@@ -209,7 +209,6 @@ class Metadata:
                     pass
         fields = {}
         required = []
-        print (comp_descriptor.get_fields(True))
 
         for prop, value in comp_descriptor.get_fields(False).items():
             fields[prop] = {'type': value['type'],
