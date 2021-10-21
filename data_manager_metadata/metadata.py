@@ -209,6 +209,7 @@ class Metadata:
                     pass
         fields = {}
         required = []
+        print (comp_descriptor.get_fields(True))
 
         for prop, value in comp_descriptor.get_fields(False).items():
             fields[prop] = {'type': value['type'],
@@ -420,6 +421,7 @@ class FieldsDescriptorAnnotation(Annotation):
         self.validate_description(description)
         self.description = description
         if fields:
+            self.fields = {}
             self.add_fields(fields)
         else:
             self.fields = {}
@@ -517,11 +519,12 @@ class FieldsDescriptorAnnotation(Annotation):
         """ Add a dictionary of additions/updates to the fields list
             fields.
         """
-        self.fields = {}
 
         for prop, values in new_fields.items():
             # unpack the individual lines for processing, adding optional
             # fields.
+            if 'active' not in values.keys():
+                values['active'] = True
             if 'description' not in values.keys():
                 values['description'] = ''
             if 'required' not in values.keys():

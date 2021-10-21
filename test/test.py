@@ -367,6 +367,23 @@ class MyTestCase(unittest.TestCase):
         print(schema)
         self.assertEqual(schema, expected_schema)
         print ('Json Schema matches expected schema')
+
+        input_fields = {'test1': {'type': 'string', 'description': 'test1',
+                                       'required': True}
+                            }
+        expected_fields = {'smiles': {'type': 'string', 'description': 'standardized smiles'},
+                           'uuid': {'type': 'string', 'description': 'Molecule Identifier'},
+                           'test1': {'type': 'string', 'description': 'test1'}
+                           }
+        expected_req = ['smiles', 'uuid', 'test1']
+        annotation = FieldsDescriptorAnnotation('Supplier 1', 'New description', input_fields)
+        self.metadata.add_annotation(annotation)
+        schema = (self.metadata.get_json_schema())
+        print(schema)
+        self.assertEqual(schema['fields'], expected_fields)
+        self.assertEqual(schema['required'], expected_req)
+        print ('With added annotation, Json Schema matches expected schema')
+
         print('\nTest 8 ok')
 
 
@@ -399,7 +416,14 @@ class MyTestCase(unittest.TestCase):
                             {'type': 'string',
                              'description': 'Molecule Identifier',
                              'required': True,
-                             'active': True}}}
+                             'active': True},
+                        'test1':
+                            {'type': 'string',
+                             'description': 'test1',
+                             'required': True,
+                             'active': True}
+                        }
+            }
         anno = (self.metadata.get_compiled_fields())
         print(anno)
         self.assertEqual(anno['fields'], expected_annotation['fields'])

@@ -61,8 +61,8 @@ class FieldsDescriptorAnnotation {
     origin : String
     description : String
     properties : Dict
-    get/set/validate_origin()
-    get/set/validate_description()
+    get/validate_origin()
+    get/validate_description()
     add/validate_field(name, active, type, description)
     get_field(name) : dict
     add_fields(dict)
