@@ -358,59 +358,70 @@ class MyTestCase(unittest.TestCase):
                            'type': 'object',
                            'fields':
                                {'smiles': {'type': 'string', 'description': 'standardized smiles'},
-                                'uuid': {'type': 'string', 'description': 'Molecule Identifier'}},
+                                'uuid': {'type': 'string', 'description': 'Molecule Identifier'},
+                                'ID': {'type': 'string', 'description': 'Changed File Identifier'}},
                            'required': ['smiles', 'uuid'],
                            'labels': {'label2': 'value changed',
                                       'label1': 'value1'},
                            }
         schema = (self.metadata.get_json_schema())
-        print(schema)
         self.assertEqual(schema, expected_schema)
         print ('Json Schema matches expected schema')
 
+        # Add a FieldsDescriptor and regenerate
         input_fields = {'test1': {'type': 'string', 'description': 'test1',
                                        'required': True}
                             }
         expected_fields = {'smiles': {'type': 'string', 'description': 'standardized smiles'},
                            'uuid': {'type': 'string', 'description': 'Molecule Identifier'},
+                           'ID': {'type': 'string', 'description': 'Changed File Identifier'},
                            'test1': {'type': 'string', 'description': 'test1'}
                            }
         expected_req = ['smiles', 'uuid', 'test1']
         annotation = FieldsDescriptorAnnotation('Supplier 1', 'New description', input_fields)
         self.metadata.add_annotation(annotation)
         schema = (self.metadata.get_json_schema())
+        self.assertEqual(schema['fields'], expected_fields)
+        self.assertEqual(schema['required'], expected_req)
+        print ('With added FD annotation, Json Schema matches expected schema')
+
+        # Add a Service Execution and regenerate
+        input_fields = {'test2': {'type': 'string', 'description': 'test2 - service ex',
+                                       'required': False}
+                            }
+        expected_fields = {'smiles': {'type': 'string', 'description': 'standardized smiles'},
+                           'uuid': {'type': 'string', 'description': 'Molecule Identifier'},
+                           'ID': {'type': 'string', 'description': 'Changed File Identifier'},
+                           'test1': {'type': 'string', 'description': 'test1'},
+                           'test2': {'type': 'string', 'description': 'test2 - service ex'}
+                           }
+        expected_req = ['smiles', 'uuid', 'test1']
+        annotation = ServiceExecutionAnnotation\
+            ('Jupyter notebook', '1.0', 'User-1', 'service description',
+             'www.example.com/service.html', {}, 'Supplier 1', 'A description',
+             input_fields)
+        self.metadata.add_annotation(annotation)
+        schema = (self.metadata.get_json_schema())
         print(schema)
         self.assertEqual(schema['fields'], expected_fields)
         self.assertEqual(schema['required'], expected_req)
-        print ('With added annotation, Json Schema matches expected schema')
+        print ('With added SE annotation, Json Schema matches expected schema')
 
         print('\nTest 8 ok')
 
 
-    def test_09_simple_labels_in_schema(self):
-        print ('\n9. Create simple labels from schema')
-        annotations = json.dumps([{'type': 'LabelAnnotation',
-                        'label': 'label1',
-                        'value': 'value1',
-                        'active': True}])
-        labels = {'label1': 'value1'}
-        metadata_new = Metadata('New dataset', '0000-2222',
-                                'Created from the first dataset by a workflow', 'Harry')
-        metadata_new.add_annotations(annotations)
-        schema = (metadata_new.get_json_schema())
-        print(schema)
-        self.assertEqual(schema['labels'], labels)
-
-        print('\nTest 9 ok')
-
-
-    def test_10_compiled_fields (self):
-        print ('\n10. Test compiled fields descriptor extract from Metadata')
+    def test_09_compiled_fields (self):
+        print ('\n09. Test compiled fields descriptor extract from Metadata')
         expected_annotation = \
             {'fields': {'smiles':
                             {'type': 'string',
                              'description': 'standardized smiles',
                              'required': True,
+                             'active': True},
+                        'ID':
+                            {'type': 'string',
+                             'description': 'Changed File Identifier',
+                             'required': False,
                              'active': True},
                         'uuid':
                             {'type': 'string',
@@ -421,6 +432,11 @@ class MyTestCase(unittest.TestCase):
                             {'type': 'string',
                              'description': 'test1',
                              'required': True,
+                             'active': True},
+                        'test2':
+                            {'type': 'string',
+                             'description': 'test2 - service ex',
+                             'required': False,
                              'active': True}
                         }
             }
@@ -436,7 +452,25 @@ class MyTestCase(unittest.TestCase):
             schema = (self.metadata.get_json_schema())
             print(schema)
 
+        print('\nTest 09 ok')
+
+
+    def test_10_simple_labels_in_schema(self):
+        print ('\n10. Create simple labels from schema')
+        annotations = json.dumps([{'type': 'LabelAnnotation',
+                        'label': 'label1',
+                        'value': 'value1',
+                        'active': True}])
+        labels = {'label1': 'value1'}
+        metadata_new = Metadata('New dataset', '0000-2222',
+                                'Created from the first dataset by a workflow', 'Harry')
+        metadata_new.add_annotations(annotations)
+        schema = (metadata_new.get_json_schema())
+        print(schema)
+        self.assertEqual(schema['labels'], labels)
+
         print('\nTest 10 ok')
+
 
     def test_11_context (self):
         print ('\n11. Test annotations context and order')

@@ -201,7 +201,8 @@ class Metadata:
         # FieldDescriptor to use in the json schema output.
         comp_descriptor = FieldsDescriptorAnnotation()
         for annotation in self.annotations:
-            if annotation.get_type() == 'FieldsDescriptorAnnotation':
+            if annotation.get_type() in ['FieldsDescriptorAnnotation',
+                                         'ServiceExecutionAnnotation']:
                 # Allow for validation errors in old field descriptors.
                 try:
                     comp_descriptor.add_fields(annotation.get_fields())
@@ -238,7 +239,8 @@ class Metadata:
 
         comp_descriptor = FieldsDescriptorAnnotation()
         for annotation in self.annotations:
-            if annotation.get_type() == 'FieldsDescriptorAnnotation':
+            if annotation.get_type() in ['FieldsDescriptorAnnotation',
+                                         'ServiceExecutionAnnotation']:
                 # Allow for validation errors in old field descriptors.
                 try:
                     comp_descriptor.add_fields(annotation.get_fields())
