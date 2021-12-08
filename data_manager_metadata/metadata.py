@@ -9,6 +9,7 @@ import json
 import datetime
 import yaml
 import copy
+from typing import List
 from abc import ABC, abstractmethod
 import re
 
@@ -28,11 +29,11 @@ FIELD_DICT = {'type': '', 'description': '', 'required': False,
               'active': False}
 
 
-def metadata_version() -> str:
+def get_metadata_version() -> str:
     return _METADATA_VERSION
 
 
-def annotation_version() -> str:
+def get_annotation_version() -> str:
     return _ANNOTATION_VERSION
 
 
@@ -52,20 +53,42 @@ class Metadata:
 
     """
 
-    def __init__(self, dataset_name: str, dataset_uuid: str, description: str,
-                 created_by: str):
+    def __init__(self, dataset_name: str, dataset_id: str, description: str,
+                 created_by: str,
+                 created: str = None,
+                 last_updated: str = None,
+                 metadata_version: str = None,
+                 annotations: List = None):
         assert dataset_name
-        assert dataset_uuid
+        assert dataset_id
         assert created_by
 
         self.dataset_name = dataset_name
-        self.dataset_uuid = dataset_uuid
+        self.dataset_uuid = dataset_id
         self.description = description
-        self.created = datetime.datetime.utcnow()
-        self.last_updated = self.created
         self.created_by = created_by
-        self.metadata_version = metadata_version()
+
+        if created:
+            self.created = datetime.datetime.strptime(created,
+                                                      '%Y-%m-%dT%H:%M:%S.%f')
+        else:
+            self.created = datetime.datetime.utcnow()
+
+        if last_updated:
+            self.last_updated = datetime.datetime.strptime(last_updated,
+                                                      '%Y-%m-%dT%H:%M:%S.%f')
+        else:
+            self.last_updated = self.created
+
+        if metadata_version:
+            self.metadata_version = metadata_version
+        else:
+            self.metadata_version = get_metadata_version()
+
         self.annotations = []
+        if annotations:
+            for annotation_row in annotations:
+                self._create_annotation(annotation_row)
 
     def get_dataset_name(self):
         return self.dataset_name
@@ -170,7 +193,7 @@ class Metadata:
         annotation = class_lookup[annotation_class](**annotation_row)
         if annotation_created:
             annotation.set_created(annotation_created)
-        self.add_annotation(annotation)
+        self.annotations.append(annotation)
 
     def add_annotations(self, annotations: json):
         """ Add a list of annotations in json format to the annotation list
@@ -311,7 +334,7 @@ class Annotation(ABC):
     @abstractmethod
     def __init__(self):
         self.created = datetime.datetime.utcnow()
-        self.annotation_version = annotation_version()
+        self.annotation_version = get_annotation_version()
 
     def get_type(self):
         return self.__class__.__name__

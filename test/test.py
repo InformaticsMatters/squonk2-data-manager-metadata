@@ -29,9 +29,15 @@ class MyTestCase(unittest.TestCase):
         self.metadata.set_description('test description')
         self.metadata.set_created_by('Dick')
         self.assertEqual(len(self.metadata.to_dict()["annotations"]), 2)
-
-        print (self.metadata.to_json())
         print('\nTest 1.2 ok')
+
+        print ('1.3. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+        print('\nTest 1.3 ok')
 
     def test_02_label_annotations(self):
         print ('\n2.1. Label Annotation')
@@ -57,6 +63,14 @@ class MyTestCase(unittest.TestCase):
         else:
             self.fail("This should normally fail")
 
+        print('\nTest 2.3 ok')
+
+        print ('2.3. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
         print('\nTest 2.3 ok')
 
     def test_03_fields_annotations(self):
@@ -158,6 +172,14 @@ class MyTestCase(unittest.TestCase):
 
         print('\nTest 3.4 ok')
 
+        print ('3.5. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+        print('\nTest 3.5 ok')
+
 
     def test_04_service_execution(self):
         print ('\n4. Service Execution Annotation')
@@ -252,6 +274,13 @@ class MyTestCase(unittest.TestCase):
 
         print('\nTest 4.3 ok')
 
+        print ('4.4. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+        print('\nTest 4.4 ok')
 
     def test_05_load_annotations_in_new_metadata(self):
         print ('\n5. Get annotations from Metadata and add to new Metadata')
@@ -349,6 +378,17 @@ class MyTestCase(unittest.TestCase):
         print ('Number of labels is correct')
         print('\nTest 7 ok')
 
+        print ('7.1. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+        labels = (reload_metadata.get_labels(True,True))
+        self.assertEqual(len(labels), 2)
+        self.assertEqual(labels, {'label2': 'value changed', 'label1': 'value1'})
+        print('\nTest 7.1 ok')
+
 
     def test_08_json_schema (self):
         print ('\n8. Test json schema extract from Metadata')
@@ -409,6 +449,18 @@ class MyTestCase(unittest.TestCase):
 
         print('\nTest 8 ok')
 
+        print ('8.1. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+
+        schema = (reload_metadata.get_json_schema())
+        self.assertEqual(schema['fields'], expected_fields)
+        self.assertEqual(schema['required'], expected_req)
+        print('\nTest 8.1 ok')
+
 
     def test_09_compiled_fields (self):
         print ('\n09. Test compiled fields descriptor extract from Metadata')
@@ -453,6 +505,18 @@ class MyTestCase(unittest.TestCase):
             print(schema)
 
         print('\nTest 09 ok')
+
+        print ('9.1. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+
+        anno = (reload_metadata.get_compiled_fields())
+        self.assertEqual(anno['fields'], expected_annotation['fields'])
+
+        print('\nTest 9.1 ok')
 
 
     def test_10_simple_labels_in_schema(self):
