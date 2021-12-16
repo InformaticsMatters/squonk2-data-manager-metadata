@@ -1,6 +1,5 @@
 import unittest
 import json
-import jsonpickle
 from data_manager_metadata.metadata import (Metadata,
                                             LabelAnnotation,
                                             FieldsDescriptorAnnotation,
@@ -10,7 +9,7 @@ from data_manager_metadata.annotation_utils import est_schema_field_type
 from data_manager_metadata.exceptions import (ANNOTATION_ERRORS,
                                               AnnotationValidationError)
 
-class MyTestCase(unittest.TestCase):
+class MetadataTestCase(unittest.TestCase):
 
     metadata = Metadata('test', '0000-1111', '', 'Bob')
 
@@ -291,15 +290,6 @@ class MyTestCase(unittest.TestCase):
         annotations_new = metadata_new.get_annotations_json()
         self.assertEqual(annotations_old, annotations_new)
         print('\nTest 5 ok')
-
-
-    def test_06_pickle_and_unpickle_metadata (self):
-        print ('\n6. Pickle and Unpickle metatdata for saving object into dataset')
-        metapickled = jsonpickle.encode(self.metadata)
-        metaunpickled = jsonpickle.decode(metapickled)
-        self.assertEqual(self.metadata.to_json(), metaunpickled.to_json())
-        print ('Metadata Output Equal')
-        print('\nTest 6 ok')
 
 
     def test_07_label_list (self):
