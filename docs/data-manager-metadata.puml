@@ -6,7 +6,10 @@ class Metadata {
     description : String
     created : timestamp
     last_updated : timestamp
+    dataset_version : Integer
+    synchronised_date : timestamp
     annotations : list
+    labels : list
     get/set_dataset_name()
     get/set_dataset_uuid()
     get/set_dataset_created_by()
@@ -15,14 +18,15 @@ class Metadata {
     add_annotation(object)
     get_annotations_dict() : dict
     get_annotations_json() : json
-    add_annotations(json)
+    add_annotations(dict)
+    get_labels(): dict
+    add_labels(dict): dict
     get_json_schema(): dict
     get_compiled_fields(): dict
-    get_labels(): dict
     to_dict()
     to_json()
 }
-note right: Metadata is intended\nto be stored with a dataset.\nIt will be a collection of\ndataset descriptive/\nstructural metadata and annotations.
+note right: Metadata is intended to be stored with a dataset.\nIt will be a collection of descriptive/structural metadata and annotations\nMetadata can be held at different levsls with different attributes:\n- the dataset level (with only label annotations)\n- version level (with non-label annotations)\n- or it can 'travel' (i.e. a version that exists in a file in a project)  .
 
 abstract class Annotation {
     type : String

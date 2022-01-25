@@ -7,12 +7,13 @@ via a file or the data manager POST/dataset/annotations API.
 ## Directory contents
 
 -   `data_manager_metadata` contains the application (Python) code
-    -   `__init__.py` standard functionality. 
-    -   `metadata.py` contains the classes for the metadata class and annotations classes and all 
-        'intelligence'
+    - `__init__.py` standard functionality. 
+    - `metadata.py` contains the classes for the metadata class and annotations classes 
+    - `data_tier_api.py` contains the interface to the data_tier. 
+    - `exceptions.py` contains the exceptions when using the interface online. Exceptions are suppressed when running jobs. 
 -   `md-manage.py` contains command line commands to create annotations
 -   `docs/` is for background documentation (including this file)
--   `test/` contains the functional test set including migration tests. 
+-   `test/` contains the functional test set including migration tests and api tests. 
     Produces example output for each annotation type. Should be run each time the functionality 
     is changed. It is also run in github actions to build the library. 
 
