@@ -388,6 +388,7 @@ class MetadataTestCase(unittest.TestCase):
         expected_schema = {'$schema': 'http://json-schema.org/draft/2019-09/schema#',
                            '$id': 'https://example.com/product.schema.json',
                            'title': 'test', 'description': 'test description',
+                           'version': 0,
                            'type': 'object',
                            'fields':
                                {'smiles': {'type': 'string', 'description': 'standardized smiles'},

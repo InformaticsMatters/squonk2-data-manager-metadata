@@ -378,6 +378,7 @@ class Metadata:
                   '$id': _SCHEMA_ID,
                   'title': self.dataset_name,
                   'description': self.description,
+                  'version': self.dataset_version,
                   'type': 'object',
                   'fields': fields,
                   'required': required,

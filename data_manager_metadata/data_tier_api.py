@@ -6,7 +6,7 @@
     Note that in general
 
 """
-from typing import  Any, Dict, Tuple
+from typing import  Any, Dict
 import copy
 from data_manager_metadata.metadata import Metadata
 
@@ -180,8 +180,6 @@ def get_travelling_metadata(dataset_metadata: Dict[str, Any],
     d_metadata.add_annotations(v_metadata.get_annotations_dict())
     d_metadata.set_synchronised_datetime()
     d_metadata.set_dataset_version(v_metadata.get_dataset_version())
-
-    # TODO Version number -> should it be in the schema? I think yes?
     return d_metadata.to_dict(), d_metadata.get_json_schema()
 
 
@@ -283,8 +281,6 @@ def post_travelling_metadata_to_existing_dataset\
             deepcopy(t_metadata.get_unapplied_labels(synchronised_datetime))}
     v_metadata_params = \
         { 'annotations': copy.deepcopy(travelling_metadata['annotations'])}
-
-    #TODO - Get unapplied property change annotations from metadata??
 
     dataset_metadata = patch_dataset_metadata(
         dataset_metadata,
