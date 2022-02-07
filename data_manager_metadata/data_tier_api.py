@@ -6,7 +6,7 @@
     Note that in general
 
 """
-from typing import  Any, Dict
+from typing import  Any, Dict, Tuple
 import copy
 from data_manager_metadata.metadata import Metadata
 
@@ -17,8 +17,11 @@ def post_dataset_metadata(dataset_name: str,
                           dataset_id: str,
                           description: str,
                           created_by: str,
-                          **metadata_params: Any) -> Dict[str, Any]:
+                          **metadata_params: Any) \
+        -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Create a metadata class at the dataset level.
+    Returns a json schema that will be used for label searches at the
+    dataset level.
 
     Args:
         dataset_name
@@ -29,6 +32,7 @@ def post_dataset_metadata(dataset_name: str,
 
     Returns:
         metadata dict
+        json_schema
     """
 
     # At dataset level only labels and property changes allowed.
@@ -42,12 +46,13 @@ def post_dataset_metadata(dataset_name: str,
     # Create the dictionary with the remaining parameters
     metadata = Metadata(dataset_name, dataset_id, description, created_by,
                         **metadata_params)
-    return metadata.to_dict()
+    return metadata.to_dict(), metadata.get_json_schema()
 
 
 def post_version_metadata(dataset_metadata: Dict[str, Any],
                           version: int,
-                          **metadata_params: Any):
+                          **metadata_params: Any) \
+        -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Create a metadata class at the version level.
 
     Args:
@@ -75,7 +80,8 @@ def post_version_metadata(dataset_metadata: Dict[str, Any],
 
 
 def patch_dataset_metadata(dataset_metadata: Dict[str, Any],
-                           **metadata_params: Any) -> Dict[str, Any]:
+                           **metadata_params: Any) \
+        -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Update the metadata at the dataset level.
 
     The metadata_params will be limited to the following parameters:
@@ -90,6 +96,7 @@ def patch_dataset_metadata(dataset_metadata: Dict[str, Any],
 
     Returns:
         metadata dict
+        json_schema
     """
 
     metadata = Metadata(**dataset_metadata)
@@ -100,7 +107,7 @@ def patch_dataset_metadata(dataset_metadata: Dict[str, Any],
     if 'labels' in metadata_params:
         metadata.add_labels(metadata_params['labels'])
 
-    return metadata.to_dict()
+    return metadata.to_dict(), metadata.get_json_schema()
 
 
 def get_version_schema(dataset_metadata: Dict[str, Any],
@@ -113,7 +120,6 @@ def get_version_schema(dataset_metadata: Dict[str, Any],
     inherited changed attributes from the dataset level.
 
     Args:
-        dataset metadata
         version metedata
 
     Returns:
@@ -128,7 +134,8 @@ def get_version_schema(dataset_metadata: Dict[str, Any],
 
 def patch_version_metadata(dataset_metadata: Dict[str, Any],
                            version_metadata: Dict[str, Any],
-                           **metadata_params: Any):
+                           **metadata_params: Any) \
+        -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Update metadata at the version level.
     This is only used for updating annotations and description.
 
@@ -158,7 +165,8 @@ def patch_version_metadata(dataset_metadata: Dict[str, Any],
 
 
 def get_travelling_metadata(dataset_metadata: Dict[str, Any],
-                            version_metadata: Dict[str, Any]):
+                            version_metadata: Dict[str, Any]) \
+        -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Returns "travelling metadata" at the version level. Travelling
     metadata is used when a dataset is added to project.
 
@@ -185,7 +193,9 @@ def get_travelling_metadata(dataset_metadata: Dict[str, Any],
 
 def post_travelling_metadata_to_new_dataset\
                 (travelling_metadata: Dict[str, Any],
-                 version: int):
+                 version: int) \
+        -> Tuple[Dict[str, Any], Dict[str, Any],
+                 Dict[str, Any], Dict[str, Any]]:
     """Creates dataset metadata with the results of the voyage.
 
     This method will be used when a completely new dataset is to be created
@@ -197,6 +207,7 @@ def post_travelling_metadata_to_new_dataset\
 
     Returns:
         dataset metadata
+        dataset schema
         version metadata
         version json schema
     """
@@ -206,7 +217,7 @@ def post_travelling_metadata_to_new_dataset\
     v_metadata_params = \
         { 'annotations': copy.deepcopy(travelling_metadata['annotations'])}
 
-    dataset_metadata = post_dataset_metadata(
+    dataset_metadata, dataset_schema = post_dataset_metadata(
         travelling_metadata['dataset_name'],
         travelling_metadata['dataset_id'],
         travelling_metadata['description'],
@@ -217,12 +228,14 @@ def post_travelling_metadata_to_new_dataset\
         post_version_metadata(dataset_metadata, version, **v_metadata_params)
 
     return dataset_metadata, \
+           dataset_schema, \
            version_metadata, \
            version_schema
 
 
 def patch_travelling_metadata(travelling_metadata: Dict[str, Any],
-                              **metadata_params: Any):
+                              **metadata_params: Any) \
+        -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Updates en-route "travelling metadata" at the version level.
     Note that currently, only the description, labels and annotations
     can be changed. Other values are set automatically.
@@ -255,7 +268,9 @@ def patch_travelling_metadata(travelling_metadata: Dict[str, Any],
 def post_travelling_metadata_to_existing_dataset\
                 (travelling_metadata: Dict[str, Any],
                  dataset_metadata: Dict[str, Any],
-                 version: int):
+                 version: int) \
+        -> Tuple[Dict[str, Any], Dict[str, Any],
+                 Dict[str, Any], Dict[str, Any]]:
     """Updates version metadata with the results of the voyage.
 
     Note that if the labels have changed, a get_version_schema will be required
@@ -267,10 +282,10 @@ def post_travelling_metadata_to_existing_dataset\
         dataset_version
 
     Returns:
+        dataset metadata
+        dataset schema
         version metadata
-        version metedata
         version json schema
-        labels_changed
     """
 
     t_metadata = Metadata(**travelling_metadata)
@@ -282,7 +297,7 @@ def post_travelling_metadata_to_existing_dataset\
     v_metadata_params = \
         { 'annotations': copy.deepcopy(travelling_metadata['annotations'])}
 
-    dataset_metadata = patch_dataset_metadata(
+    dataset_metadata, dataset_schema = patch_dataset_metadata(
         dataset_metadata,
         **d_metadata_params)
 
@@ -290,5 +305,6 @@ def post_travelling_metadata_to_existing_dataset\
         post_version_metadata(dataset_metadata, version, **v_metadata_params)
 
     return dataset_metadata, \
+           dataset_schema,  \
            version_metadata, \
            version_schema

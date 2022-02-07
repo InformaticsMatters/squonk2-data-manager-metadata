@@ -34,7 +34,7 @@ class DataTierTestCase(unittest.TestCase):
                                                  input_fields)
 
 
-        dataset_metadata = \
+        dataset_metadata, dataset_schema = \
             post_dataset_metadata\
                 ('test dataset',
                  'dataset-0d7ce92a-50ff-42f4-9936-6ccf701938c1',
@@ -43,6 +43,7 @@ class DataTierTestCase(unittest.TestCase):
                  annotations=annotation1.to_dict())
 
         self.assertEqual(dataset_metadata['dataset_name'],'test dataset')
+        self.assertEqual(dataset_schema['description'],'description')
         print(dataset_metadata)
 
         print('\nTest 1.1 ok')
@@ -51,7 +52,7 @@ class DataTierTestCase(unittest.TestCase):
     def test_02_post_version_metadata(self):
         print ('2.1 post_version_metadata')
 
-        dataset_metadata = \
+        dataset_metadata, dummy = \
             post_dataset_metadata\
                 ('test dataset',
                  'dataset-0d7ce92a-50ff-42f4-9936-6ccf701938c1',
@@ -72,7 +73,7 @@ class DataTierTestCase(unittest.TestCase):
     def test_03_patch_dataset_metadata(self):
         print ('3.1 patch_dataset_metadata')
 
-        dataset_metadata = \
+        dataset_metadata, dummy = \
             post_dataset_metadata\
                 ('test dataset',
                  'dataset-0d7ce92a-50ff-42f4-9936-6ccf701938c1',
@@ -86,13 +87,14 @@ class DataTierTestCase(unittest.TestCase):
                         'value': 'value1',
                         'active': True}]
 
-        new_dataset_metadata = \
+        new_dataset_metadata, new_dataset_schema = \
             patch_dataset_metadata(dataset_metadata,
                                    description='new description',
                                    labels=labels_list)
 
         self.assertEqual(new_dataset_metadata['description'],'new description')
         self.assertEqual(len(new_dataset_metadata['labels']),1)
+        self.assertEqual(len(new_dataset_schema['labels']),1)
         print(new_dataset_metadata)
 
         print('\nTest 3.1 ok')
@@ -101,7 +103,7 @@ class DataTierTestCase(unittest.TestCase):
     def test_04_get_version_schema(self):
         print ('4.1 get_version_schema')
 
-        dataset_metadata = \
+        dataset_metadata, dummy = \
             post_dataset_metadata\
                 ('test dataset',
                  'dataset-0d7ce92a-50ff-42f4-9936-6ccf701938c1',
@@ -116,7 +118,7 @@ class DataTierTestCase(unittest.TestCase):
                         'value': 'value1',
                         'active': True}]
 
-        new_dataset_metadata = \
+        new_dataset_metadata, dummy = \
             patch_dataset_metadata(dataset_metadata,
                                    description='new description',
                                    labels=labels_list)
@@ -135,7 +137,7 @@ class DataTierTestCase(unittest.TestCase):
     def test_05_patch_version_metadata(self):
         print ('5.1 patch_version_metadata')
 
-        dataset_metadata = \
+        dataset_metadata, dummy = \
             post_dataset_metadata\
                 ('test dataset',
                  'dataset-0d7ce92a-50ff-42f4-9936-6ccf701938c1',
@@ -182,7 +184,7 @@ class DataTierTestCase(unittest.TestCase):
                         'value': 'value1',
                         'active': True}]
 
-        dataset_metadata = \
+        dataset_metadata, dummy = \
             post_dataset_metadata\
                 ('test dataset',
                  'dataset-0d7ce92a-50ff-42f4-9936-6ccf701938c1',
@@ -238,7 +240,7 @@ class DataTierTestCase(unittest.TestCase):
                         'value': 'value1',
                         'active': True}]
 
-        dataset_metadata = \
+        dataset_metadata, dummy = \
             post_dataset_metadata\
                 ('test dataset',
                  'dataset-0d7ce92a-50ff-42f4-9936-6ccf701938c1',
@@ -267,10 +269,11 @@ class DataTierTestCase(unittest.TestCase):
             get_travelling_metadata(dataset_metadata,
                                    version_metadata)
 
-        new_dataset, new_version, new_schema = \
+        new_dataset, new_dataset_schema, new_version, new_schema = \
             post_travelling_metadata_to_new_dataset (travelling_metadata, 2)
 
         print(new_dataset)
+        print(new_dataset_schema)
         print(new_version)
         print(new_schema)
 
@@ -278,6 +281,7 @@ class DataTierTestCase(unittest.TestCase):
         self.assertEqual(len(new_dataset['labels']),1)
         self.assertEqual(new_dataset['synchronised_datetime'],
                          _DEFAULT_SYNC_TIME)
+        self.assertEqual(len(new_dataset_schema['labels']),1)
         self.assertEqual(len(new_version['annotations']),1)
         self.assertEqual(len(new_version['labels']),0)
         self.assertEqual(new_version['dataset_version'],2)
@@ -298,7 +302,7 @@ class DataTierTestCase(unittest.TestCase):
                         'value': 'value1',
                         'active': True}]
 
-        dataset_metadata = \
+        dataset_metadata, dummy = \
             post_dataset_metadata \
                 ('test dataset',
                  'dataset-0d7ce92a-50ff-42f4-9936-6ccf701938c1',
@@ -352,16 +356,17 @@ class DataTierTestCase(unittest.TestCase):
                          'value': 'value3',
                          'active': True}]
 
-        new_dataset_metadata = \
+        new_dataset_metadata, new_dataset_version = \
             patch_dataset_metadata(dataset_metadata,
                                    labels=labels3_list)
         self.assertEqual(len(new_dataset_metadata['labels']), 2)
 
-        existing_dataset, new_version, new_schema = \
+        existing_dataset, existing_schema, new_version, new_schema = \
             post_travelling_metadata_to_existing_dataset\
                 (new_travelling_metadata,new_dataset_metadata, 2)
 
         print(existing_dataset)
+        print(existing_schema)
         print(new_version)
         print(new_schema)
 
@@ -369,6 +374,7 @@ class DataTierTestCase(unittest.TestCase):
         self.assertEqual(len(existing_dataset['labels']), 3)
         self.assertEqual(existing_dataset['synchronised_datetime'],
                          _DEFAULT_SYNC_TIME)
+        self.assertEqual(len(existing_schema['labels']), 3)
         self.assertEqual(len(new_version['annotations']), 1)
         self.assertEqual(len(new_version['labels']), 0)
         self.assertEqual(new_version['dataset_version'], 2)
