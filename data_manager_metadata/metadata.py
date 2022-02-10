@@ -9,6 +9,7 @@ import json
 import datetime
 import yaml
 import copy
+from typing import List
 from abc import ABC, abstractmethod
 import re
 
@@ -17,6 +18,9 @@ from .exceptions import (ANNOTATION_ERRORS,
 
 _METADATA_VERSION: str = '0.0.1'
 _ANNOTATION_VERSION: str = '0.0.1'
+_MASTER_VERSION: int = 0
+_DEFAULT_SYNC_TIME: str = '2001-01-01T12:00:00.000001'
+
 _SCHEMA: str = 'http://json-schema.org/draft/2019-09/schema#'
 _SCHEMA_ID: str = 'https://example.com/product.schema.json'
 _ANNOTATIONS_EXT = '.annotations'
@@ -28,11 +32,11 @@ FIELD_DICT = {'type': '', 'description': '', 'required': False,
               'active': False}
 
 
-def metadata_version() -> str:
+def get_metadata_version() -> str:
     return _METADATA_VERSION
 
 
-def annotation_version() -> str:
+def get_annotation_version() -> str:
     return _ANNOTATION_VERSION
 
 
@@ -52,20 +56,65 @@ class Metadata:
 
     """
 
-    def __init__(self, dataset_name: str, dataset_uuid: str, description: str,
-                 created_by: str):
+    def __init__(self, dataset_name: str, dataset_id: str, description: str,
+                 created_by: str,
+                 created: str = None,
+                 last_updated: str = None,
+                 metadata_version: str = None,
+                 annotations: List = None,
+                 labels: List = None,
+                 dataset_version: int = None,
+                 synchronised_datetime: str = None):
         assert dataset_name
-        assert dataset_uuid
+        assert dataset_id
         assert created_by
 
         self.dataset_name = dataset_name
-        self.dataset_uuid = dataset_uuid
+        self.dataset_uuid = dataset_id
         self.description = description
-        self.created = datetime.datetime.utcnow()
-        self.last_updated = self.created
         self.created_by = created_by
-        self.metadata_version = metadata_version()
+
+        if created:
+            self.created = datetime.datetime.strptime(created,
+                                                      '%Y-%m-%dT%H:%M:%S.%f')
+        else:
+            self.created = datetime.datetime.utcnow()
+
+        if last_updated:
+            self.last_updated = datetime.datetime.strptime(last_updated,
+                                                      '%Y-%m-%dT%H:%M:%S.%f')
+        else:
+            self.last_updated = self.created
+
+        if metadata_version:
+            self.metadata_version = metadata_version
+        else:
+            self.metadata_version = get_metadata_version()
+
         self.annotations = []
+        if annotations:
+            annos_copy = copy.deepcopy(annotations)
+            self.add_annotations(annos_copy, init=True)
+
+        self.labels = []
+        if labels:
+            labels_copy = copy.deepcopy(labels)
+            for label_row in labels_copy:
+                self._create_label(label_row)
+
+        if dataset_version:
+            self.dataset_version = dataset_version
+        else:
+            self.dataset_version = _MASTER_VERSION
+
+        if synchronised_datetime:
+            self.synchronised_datetime = \
+                datetime.datetime.strptime(synchronised_datetime,
+                                           '%Y-%m-%dT%H:%M:%S.%f')
+        else:
+            self.synchronised_datetime = \
+                datetime.datetime.strptime(_DEFAULT_SYNC_TIME,
+                                          '%Y-%m-%dT%H:%M:%S.%f')
 
     def get_dataset_name(self):
         return self.dataset_name
@@ -107,6 +156,23 @@ class Metadata:
     def get_metadata_version(self):
         return self.metadata_version
 
+    def get_dataset_version(self):
+        return self.dataset_version
+
+    def set_dataset_version(self, dataset_version: int):
+        # Note that no property change annotation is set here as this is
+        # a technical field.
+        assert dataset_version
+        self.dataset_version = dataset_version
+
+    def get_synchronised_datetime(self):
+        return self.synchronised_datetime.isoformat()
+
+    def set_synchronised_datetime(self):
+        # Note that no property change annotation is set here as this is
+        # a technical field.
+        self.synchronised_datetime = datetime.datetime.utcnow()
+
     def get_annotation(self, pos: int):
         """ Get an annotation from the annotation list identified by the
         position.
@@ -147,7 +213,6 @@ class Metadata:
         """
         class_lookup = \
             {'PropertyChangeAnnotation': PropertyChangeAnnotation,
-             'LabelAnnotation': LabelAnnotation,
              'FieldsDescriptorAnnotation': FieldsDescriptorAnnotation,
              'ServiceExecutionAnnotation': ServiceExecutionAnnotation}
 
@@ -170,24 +235,116 @@ class Metadata:
         annotation = class_lookup[annotation_class](**annotation_row)
         if annotation_created:
             annotation.set_created(annotation_created)
-        self.add_annotation(annotation)
+        self.annotations.append(annotation)
 
-    def add_annotations(self, annotations: json):
+
+    def add_annotations(self, annotations_list: dict, init=False):
         """ Add a list of annotations in json format to the annotation list
         """
         # Note that this also validates the Json and returns a ValueError if
         # not valid
-        annotations_list = json.loads(annotations)
+        #annotations_list = json.loads(annotations)
 
         # If a single annotation is provided but it's simply not in a list then
         # add it
-        if annotations.lstrip()[0] != '[':
-            annotations_list = []
-            annotations_list.append(json.loads(annotations))
+        #if annotations.lstrip()[0] != '[':
+        #    annotations_list = []
+        #    annotations_list.append(json.loads(annotations))
 
-        for annotation_row in annotations_list:
-            self._create_annotation(annotation_row)
+        if 'type' in annotations_list:
+            # Only one annotation in the dict.
+            self._create_annotation(annotations_list)
+        else:
+            # Murltiple annotations in the dict
+            for annotation_row in annotations_list:
+                self._create_annotation(annotation_row)
+
+        if not init:
+            self.last_updated = datetime.datetime.utcnow()
+
+
+    def _create_label(self, label_row: dict):
+        """ Creates an annotation object based on the dictionary and add to the
+        labels list.
+        """
+        class_lookup = \
+            {'LabelAnnotation': LabelAnnotation}
+
+        # Get class and original create data
+        label_class = label_row['type']
+        label_created = None
+        # Remove from parameter list
+        del label_row['type']
+
+        # Remove unused elements if they exist
+        if 'created' in label_row:
+            label_created = label_row['created']
+            del label_row['created']
+        if 'annotation_version' in label_row:
+            del label_row['annotation_version']
+
+        # Create new label for metadata using rest of original parameters
+        # and reset created datetime. This also effectively validates the
+        # content.
+        label = class_lookup[label_class](**label_row)
+        if label_created:
+            label.set_created(label_created)
+        self.labels.append(label)
+
+
+    def add_label(self, label: object):
+        """ Add a serialized annotation to the annotation list
+        """
+        self.labels.append(label)
         self.last_updated = datetime.datetime.utcnow()
+
+
+    def add_labels(self, labels_list: dict):
+        """ Add a list of labels in dict format to the labels list
+        """
+        for label_row in labels_list:
+            self._create_label(label_row)
+        self.last_updated = datetime.datetime.utcnow()
+
+    def get_unapplied_labels(self, synchronised_datetime: str):
+        """ Get a list of the labels from the labels list that were applied
+        after a given datetime (used for synchronising travelling metadata
+        """
+        compare_datetime = datetime.datetime.strptime(synchronised_datetime,
+                                                      '%Y-%m-%dT%H:%M:%S.%f')
+
+        return [label.to_dict()
+                for label in self.labels if label.created > compare_datetime]
+
+    def get_labels(self, active=None, labels_only=False):
+        """ Returns a list of the active/inactive Label Annotations.
+            The last version of each label is returned.
+            active not set, return complete set
+            active = true - filter for active
+        """
+        label_list = []
+        label_set = set()
+        # Read through labels in reverse order and take the latest one for
+        # each label.
+        for anno in reversed(self.labels):
+            if (anno.get_label() not in label_set):
+                label_list.append(anno)
+                label_set.add(anno.get_label())
+
+        # If not active then filter any inactive labels
+        if active is True:
+            for label in reversed(label_list):
+                if label.get_active() is False:
+                    label_list.remove(label)
+
+        if labels_only:
+            return_dict = {}
+            for label in label_list:
+                return_dict.update({label.get_label(): label.get_value()})
+        else:
+            return_dict = [label.to_dict() for label in label_list]
+
+        return return_dict
 
     def get_json_schema(self):
         """ Returns the latest complete FieldsDescriptor and labels as a dict
@@ -221,7 +378,8 @@ class Metadata:
                   '$id': _SCHEMA_ID,
                   'title': self.dataset_name,
                   'description': self.description,
-                  "type": "object",
+                  'version': self.dataset_version,
+                  'type': 'object',
                   'fields': fields,
                   'required': required,
                   'labels': self.get_labels(active=True, labels_only=True)}
@@ -249,37 +407,6 @@ class Metadata:
 
         return comp_descriptor.to_dict()
 
-    def get_labels(self, active=None, labels_only=False):
-        """ Returns a list of the active/inactive Label Annotations.
-            The last version of each label is returned.
-            active not set, return complete set
-            active = true - filter for active
-        """
-        label_list = []
-        label_set = set()
-        # Read through labels in reverse order and take the latest one for
-        # each label.
-        for anno in reversed(self.annotations):
-            if anno.get_type() == 'LabelAnnotation' and (anno.get_label()
-                                                         not in label_set):
-                label_list.append(anno)
-                label_set.add(anno.get_label())
-
-        # If not active then filter any inactive labels
-        if active is True:
-            for label in reversed(label_list):
-                if label.get_active() is False:
-                    label_list.remove(label)
-
-        if labels_only:
-            return_dict = {}
-            for label in label_list:
-                return_dict.update({label.get_label(): label.get_value()})
-        else:
-            return_dict = [label.to_dict() for label in label_list]
-
-        return return_dict
-
     def to_dict(self):
         """Return principle data items in the form of a dictionary
         """
@@ -290,7 +417,11 @@ class Metadata:
                 "last_updated": self.last_updated.isoformat(),
                 "created_by": self.created_by,
                 "metadata_version": self.metadata_version,
-                "annotations": [anno.to_dict() for anno in self.annotations]}
+                "dataset_version": self.dataset_version,
+                "annotations": [anno.to_dict() for anno in self.annotations],
+                "labels": [anno.to_dict() for anno in self.labels],
+                "synchronised_datetime": self.synchronised_datetime.isoformat()
+                }
 
     def to_json(self):
         """ Serialize class to JSON
@@ -311,7 +442,7 @@ class Annotation(ABC):
     @abstractmethod
     def __init__(self):
         self.created = datetime.datetime.utcnow()
-        self.annotation_version = annotation_version()
+        self.annotation_version = get_annotation_version()
 
     def get_type(self):
         return self.__class__.__name__

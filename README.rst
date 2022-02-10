@@ -24,7 +24,8 @@ Running the Unit Tests
     >>> source ~/.venv/data-manager-metadata/bin/activate
     >>> pip install --upgrade pip
     >>> pip install -r package-requirements.txt
-    >>> python -m unittest test.test
+    >>> python -m unittest test.test_metadata
+    >>> python -m unittest test.test_api
 
 
 

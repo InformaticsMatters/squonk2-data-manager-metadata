@@ -1,6 +1,5 @@
 import unittest
 import json
-import jsonpickle
 from data_manager_metadata.metadata import (Metadata,
                                             LabelAnnotation,
                                             FieldsDescriptorAnnotation,
@@ -10,14 +9,14 @@ from data_manager_metadata.annotation_utils import est_schema_field_type
 from data_manager_metadata.exceptions import (ANNOTATION_ERRORS,
                                               AnnotationValidationError)
 
-class MyTestCase(unittest.TestCase):
+class MetadataTestCase(unittest.TestCase):
 
     metadata = Metadata('test', '0000-1111', '', 'Bob')
 
     def test_01_metadata(self):
         print ('1.1 Metadata')
         results_metadata = {'dataset_name': 'test', 'dataset_uuid': '0000-1111', 'description': '',
-                            'created_by': 'Bob', 'annotations': []}
+                            'created_by': 'Bob', 'annotations': [], 'labels': []}
         self.assertEqual(self.metadata.get_dataset_name(), results_metadata['dataset_name'])
         self.assertEqual(self.metadata.get_dataset_uuid(), results_metadata['dataset_uuid'])
         self.assertEqual(self.metadata.get_description(), results_metadata['description'])
@@ -29,9 +28,15 @@ class MyTestCase(unittest.TestCase):
         self.metadata.set_description('test description')
         self.metadata.set_created_by('Dick')
         self.assertEqual(len(self.metadata.to_dict()["annotations"]), 2)
-
-        print (self.metadata.to_json())
         print('\nTest 1.2 ok')
+
+        print ('1.3. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+        print('\nTest 1.3 ok')
 
     def test_02_label_annotations(self):
         print ('\n2.1. Label Annotation')
@@ -42,8 +47,9 @@ class MyTestCase(unittest.TestCase):
         print('\nTest 2.1 ok')
 
         print ('\n2.2. Label Annotation to Metadata')
-        self.metadata.add_annotation(annotation1)
-        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 3)
+        self.metadata.add_label(annotation1)
+        self.assertEqual(len(self.metadata.to_dict()["labels"]), 1)
+        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 2)
         print (self.metadata.to_json())
         print('\nTest 2.2 ok')
 
@@ -57,6 +63,14 @@ class MyTestCase(unittest.TestCase):
         else:
             self.fail("This should normally fail")
 
+        print('\nTest 2.3 ok')
+
+        print ('2.3. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
         print('\nTest 2.3 ok')
 
     def test_03_fields_annotations(self):
@@ -90,7 +104,7 @@ class MyTestCase(unittest.TestCase):
 
         print ('\n3.2. Fields Annotation to Metadata')
         self.metadata.add_annotation(annotation3)
-        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 4)
+        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 3)
         print('\nTest 3.2 ok')
 
         print ('\n3.3. Transfer Fields Annotation to new Fields Annotation')
@@ -158,6 +172,14 @@ class MyTestCase(unittest.TestCase):
 
         print('\nTest 3.4 ok')
 
+        print ('3.5. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+        print('\nTest 3.5 ok')
+
 
     def test_04_service_execution(self):
         print ('\n4. Service Execution Annotation')
@@ -179,7 +201,7 @@ class MyTestCase(unittest.TestCase):
 
         print ('\n4.2. Service Execution Annotation to Metadata')
         self.metadata.add_annotation(annotation4)
-        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 5)
+        self.assertEqual(len(self.metadata.to_dict()["annotations"]), 4)
         print('\nTest 4.2 ok')
 
         print ('\n4.3. Validation Errors')
@@ -252,25 +274,25 @@ class MyTestCase(unittest.TestCase):
 
         print('\nTest 4.3 ok')
 
+        print ('4.4. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+        print('\nTest 4.4 ok')
 
     def test_05_load_annotations_in_new_metadata(self):
         print ('\n5. Get annotations from Metadata and add to new Metadata')
         annotations_old = self.metadata.get_annotations_json()
+        print(annotations_old)
         metadata_new = Metadata('New dataset', '0000-2222',
                                 'Created from the first dataset by a workflow', 'Harry')
-        metadata_new.add_annotations(annotations_old)
+        metadata_new.add_annotations(self.metadata.get_annotations_dict())
         annotations_new = metadata_new.get_annotations_json()
+        print(annotations_new)
         self.assertEqual(annotations_old, annotations_new)
         print('\nTest 5 ok')
-
-
-    def test_06_pickle_and_unpickle_metadata (self):
-        print ('\n6. Pickle and Unpickle metatdata for saving object into dataset')
-        metapickled = jsonpickle.encode(self.metadata)
-        metaunpickled = jsonpickle.decode(metapickled)
-        self.assertEqual(self.metadata.to_json(), metaunpickled.to_json())
-        print ('Metadata Output Equal')
-        print('\nTest 6 ok')
 
 
     def test_07_label_list (self):
@@ -280,26 +302,26 @@ class MyTestCase(unittest.TestCase):
 
         print('add label2')
         label = LabelAnnotation('label2', 'value2')
-        self.metadata.add_annotation(label)
+        self.metadata.add_label(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 2)
 
         print('add label3 with empty value')
         label3 = LabelAnnotation('label3')
-        self.metadata.add_annotation(label3)
+        self.metadata.add_label(label3)
         labels = (self.metadata.get_labels(labels_only=True))
         self.assertEqual(len(labels), 3)
 
         print('Change label2 value')
         label = LabelAnnotation('label2', 'value changed')
-        self.metadata.add_annotation(label)
+        self.metadata.add_label(label)
         labels = (self.metadata.get_labels())
         print(labels)
         self.assertEqual(len(labels), 3)
 
         print('Make label3 inactive')
         label = LabelAnnotation('label3', active=False)
-        self.metadata.add_annotation(label)
+        self.metadata.add_label(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 3)
         labels = (self.metadata.get_labels(active=True))
@@ -307,7 +329,7 @@ class MyTestCase(unittest.TestCase):
 
         print('Make label2 inactive')
         label = LabelAnnotation('label2', active=False)
-        self.metadata.add_annotation(label)
+        self.metadata.add_label(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 3)
         labels = (self.metadata.get_labels(active=True))
@@ -315,7 +337,7 @@ class MyTestCase(unittest.TestCase):
 
         print('Make label3 active again')
         label = LabelAnnotation('label3', active=True)
-        self.metadata.add_annotation(label)
+        self.metadata.add_label(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 3)
         labels = (self.metadata.get_labels(active=True))
@@ -323,7 +345,7 @@ class MyTestCase(unittest.TestCase):
 
         print('Make label3 inactive again')
         label = LabelAnnotation('label3', active=False)
-        self.metadata.add_annotation(label)
+        self.metadata.add_label(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 3)
         labels = (self.metadata.get_labels(active=True))
@@ -331,7 +353,7 @@ class MyTestCase(unittest.TestCase):
 
         print('Make label2 active again')
         label = LabelAnnotation('label2', 'value changed', active=True)
-        self.metadata.add_annotation(label)
+        self.metadata.add_label(label)
         labels = (self.metadata.get_labels())
         self.assertEqual(len(labels), 3)
         labels = (self.metadata.get_labels(active=True))
@@ -349,12 +371,24 @@ class MyTestCase(unittest.TestCase):
         print ('Number of labels is correct')
         print('\nTest 7 ok')
 
+        print ('7.1. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+        labels = (reload_metadata.get_labels(True,True))
+        self.assertEqual(len(labels), 2)
+        self.assertEqual(labels, {'label2': 'value changed', 'label1': 'value1'})
+        print('\nTest 7.1 ok')
+
 
     def test_08_json_schema (self):
         print ('\n8. Test json schema extract from Metadata')
         expected_schema = {'$schema': 'http://json-schema.org/draft/2019-09/schema#',
                            '$id': 'https://example.com/product.schema.json',
                            'title': 'test', 'description': 'test description',
+                           'version': 0,
                            'type': 'object',
                            'fields':
                                {'smiles': {'type': 'string', 'description': 'standardized smiles'},
@@ -409,8 +443,21 @@ class MyTestCase(unittest.TestCase):
 
         print('\nTest 8 ok')
 
+        print ('8.1. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+
+        schema = (reload_metadata.get_json_schema())
+        self.assertEqual(schema['fields'], expected_fields)
+        self.assertEqual(schema['required'], expected_req)
+        print('\nTest 8.1 ok')
+
 
     def test_09_compiled_fields (self):
+        # This is used in the file formatters.
         print ('\n09. Test compiled fields descriptor extract from Metadata')
         expected_annotation = \
             {'fields': {'smiles':
@@ -448,23 +495,35 @@ class MyTestCase(unittest.TestCase):
         with open('testfile.annotations', "w") as anno_file:
             json.dump(anno, anno_file)
         with open('testfile.annotations', "r") as anno_file:
-            self.metadata.add_annotations(anno_file.read())
+            self.metadata.add_annotations(json.load(anno_file))
             schema = (self.metadata.get_json_schema())
             print(schema)
 
         print('\nTest 09 ok')
 
+        print ('9.1. Reload metadata annotations')
+        json_metadata = self.metadata.to_json()
+        dict_metadata = json.loads(json_metadata)
+        reload_metadata = Metadata(**dict_metadata)
+        json_reload_metadata = reload_metadata.to_json()
+        self.assertEqual(json_metadata, json_reload_metadata)
+
+        anno = (reload_metadata.get_compiled_fields())
+        self.assertEqual(anno['fields'], expected_annotation['fields'])
+
+        print('\nTest 9.1 ok')
+
 
     def test_10_simple_labels_in_schema(self):
         print ('\n10. Create simple labels from schema')
-        annotations = json.dumps([{'type': 'LabelAnnotation',
+        labels_list = [{'type': 'LabelAnnotation',
                         'label': 'label1',
                         'value': 'value1',
-                        'active': True}])
+                        'active': True}]
         labels = {'label1': 'value1'}
         metadata_new = Metadata('New dataset', '0000-2222',
                                 'Created from the first dataset by a workflow', 'Harry')
-        metadata_new.add_annotations(annotations)
+        metadata_new.add_labels(labels_list)
         schema = (metadata_new.get_json_schema())
         print(schema)
         self.assertEqual(schema['labels'], labels)
@@ -499,13 +558,13 @@ class MyTestCase(unittest.TestCase):
                              '', 'Dick')
         with open('test/input/test1.annotations', "r") as anno_file:
             print ('metadata 1')
-            metadata1.add_annotations(anno_file.read())
+            metadata1.add_annotations(json.load(anno_file))
             fields = (metadata1.get_compiled_fields())
             print(fields)
             self.assertEqual(fields['fields'], expected_fields1['fields'])
         with open('test/input/test2.annotations', "r") as anno_file_2:
             print ('metadata 2')
-            metadata2.add_annotations(anno_file_2.read())
+            metadata2.add_annotations(json.load(anno_file_2))
             fields = (metadata2.get_compiled_fields())
             print(fields)
             self.assertEqual(fields['fields'], expected_fields2['fields'])

@@ -43,6 +43,7 @@ jobs:
         pyroma .
     - name: Test
       run: |
-        python -m unittest test.test
+        python -m unittest test.test_metadata
+        python -m unittest test.test_api
     - name: Build
       run: python setup.py bdist_wheel
