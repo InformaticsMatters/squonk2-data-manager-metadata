@@ -7,12 +7,28 @@
 
 """
 from typing import  Any, Dict, Tuple
+from system import os
 import copy
 from data_manager_metadata.metadata import Metadata
 
 
-# Dataset Methods
+def get_metadata_filenames(filepath: str) -> Tuple[str, str]:
+    """Return the associated metadata and schema filenames for a particular
+    filepath.
+    """
+    _METADATA_EXT = '.meta.json'
+    _SCHEMA_EXT = '.schema.json'
 
+    assert filepath
+
+    # Get filename stem from filepath
+    # so in: 'filename.sdf.gz', we would get just 'filename'
+    file_basename = os.path.basename(filepath)
+    filename_stem = file_basename.split('.')[0]
+    return filename_stem + _METADATA_EXT, filename_stem + _SCHEMA_EXT
+
+
+# Dataset Methods
 def post_dataset_metadata(dataset_name: str,
                           dataset_id: str,
                           description: str,
