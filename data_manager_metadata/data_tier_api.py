@@ -172,12 +172,13 @@ def patch_version_metadata(dataset_metadata: Dict[str, Any],
 
     if 'annotations' in metadata_params:
         v_metadata.add_annotations(metadata_params['annotations'])
-        # This adds the version annotations to the dataset metadata so
-        # we can extract the json schema with both labels and annotations.
 
-    v_metadata.add_labels(d_metadata.get_labels())
+    # This adds the dataset labels to the version metadata so
+    # we can extract the json schema with both labels and annotations.
+    schema_metadata = Metadata(**v_metadata.to_dict())
+    schema_metadata.add_labels(d_metadata.get_labels())
 
-    return v_metadata.to_dict(), v_metadata.get_json_schema()
+    return v_metadata.to_dict(), schema_metadata.get_json_schema()
 
 
 def get_travelling_metadata(dataset_metadata: Dict[str, Any],
