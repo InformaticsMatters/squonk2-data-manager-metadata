@@ -14,7 +14,6 @@ as a metadata framework for molecular datasets.
 Dependencies
 ************
 - PyYAML>=5.3
-- jsonpickle>=2.0.0
 
 
 Running the Unit Tests
@@ -66,4 +65,31 @@ uploaded.
                            -fd='Run smina docking'
 
 
+Contributing
+************
+
+The project uses: -
+
+- `pre-commit`_ to enforce linting of files prior to committing them to the
+  upstream repository
+- `Commitizen`_ to enforce a [Convention Commit] commit message format
+- `Black`_ as a code formatter
+
+You **MUST** comply with these choices in order to  contribute to the project.
+
+To get started review the pre-commit utility and the conventional commit style
+and then set-up your local clone by following the **Installation** and
+**Quick Start** sections: -
+
+    >>> pip install -r package-requirements.txt
+    >>> pre-commit install -t commit-msg -t pre-commit
+
+Now the project's rules will run on every commit, and you can check the
+current health of your clone with: -
+
+    >>> pre-commit run --all-files
+
 .. _Informatics Matters: http://www.informaticsmatters.com
+.. _black: https://black.readthedocs.io/en/stable
+.. _commitizen: https://commitizen-tools.github.io/commitizen/
+.. _pre-commit: https://pre-commit.com
