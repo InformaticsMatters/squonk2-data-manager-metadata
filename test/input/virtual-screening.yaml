@@ -5,7 +5,7 @@ kind: DataManagerJobDefinition
 kind-version: '2021.1'
 
 # An arbitrary name (ignored by the DataManager)
-name: RDKit virtual screening tools
+name: Virtual screening tools using RDKit, OpenBabel and other open source tools
 
 # The 'collection' for the jobs named in this definition.
 #
@@ -18,10 +18,10 @@ name: RDKit virtual screening tools
 # to any "shard-molecules" Job identity in any other collection.
 # The collection must only container lower-case letters, numbers and a hyphen
 # and must begin with a letter.
-collection: im-rdkit-virtual-screening
+collection: im-virtual-screening
 
 # The repository where this definition (and the code for the Job) can be found.
-repository-url: https://github.com/InformaticsMatters/virtual-screening
+repository-url: https://github.com/InformaticsMatters/virtual-screening/virtual-screening.yaml
 # The repository tag.
 # All definitions are expected to reside in a repository that has been tagged.
 repository-tag: '1.0.3'
@@ -43,11 +43,10 @@ jobs:
     name: Shard candidate molecules
     # Human readable description
     description: >-
-      Standardise input molecules and generate shards based on heavy atom count and
-      calculate a range of molecular properties that can be used for filtering.
-      Basic properties of the molecules, including the vendor code and SMILES are
-      stored in a data structure (based on the SHA256 digest of the standardised SMILES)
-      that can be shared between multiple datasets.
+      Standardize input molecules and generate shards based on heavy atom count and
+      calculate a range of molecular properties used for filtering.
+      Basic properties of the molecules, including the vendor code are
+      stored in a data structure that can be shared between multiple datasets.
     # The job version.
     # Any string, but typically something compatible with SemVer 2.0.0
     version: '1.0.0'
@@ -57,6 +56,8 @@ jobs:
     keywords:
     - rdkit
     - ligand preparation
+    # link to documentation for the job
+    doc-url: https://discourse.squonk.it/t/job-shard/67
     # The container image that contains the Job implementation
     # (in v1, these are hosted on Docker Hub)
     # ... along with the image tag
@@ -67,15 +68,17 @@ jobs:
       name: informaticsmatters/vs-prep
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
       type: simple
     # The command that will be used as the Kubernetes Pod 'command'
     # (after variable expansion). This is a jinja2 template with its variables
     # described in the `variables` block below (A JSONSchema block).
     command: >-
-      /code/shard.py -i{% for file in inputFiles %} /data/{{ file }}{% endfor %}
-      -s {{ supplierName }}
-      -v {{ supplierVersion }} -o /data/{{ outputDir }} -n {{ codeFieldIndex }}
-      --errors-file {{ supplierName }}_{{ supplierVersion }}_errors.smi
+      /code/shard.py -i{% for file in inputFiles %} '{{ file }}'{% endfor %}
+      -s '{{ supplierName }}'
+      -v '{{ supplierVersion }}' -o '{{ outputDir }}' -n {{ codeFieldIndex }}
+      --skip-lines {{ skipLines }}
+      --errors-file '{{ supplierName }}_{{ supplierVersion }}_errors.smi'
       --interval 10000
     # Command variables - using JSONSchema to allow for simplified client
     # presentation to the user. 'inputs' and 'outputs' use custom types
@@ -90,6 +93,7 @@ jobs:
         - supplierName
         - supplierVersion
         - codeFieldIndex
+        - skipLines
         - outputDir
       inputs:
         type: object
@@ -99,6 +103,7 @@ jobs:
           inputFiles:
             title: Molecules to shard
             mime-types:
+            - squonk/x-smiles
             - chemical/x-csv
             multiple: true
             type: file
@@ -110,13 +115,13 @@ jobs:
             mime-types:
             - chemical/x-csv
             creates: '{{ outputDir }}/{{ supplierName }}_{{ supplierVersion }}/*.smi'
-            type: directory
+            type: files
           shards:
             title: Sharded molecule data
             mime-types:
             - appliction/json
             creates: '{{ outputDir }}/sha256/*/*/*.json'
-            type: directory
+            type: files
       options:
         type: object
         required:
@@ -124,10 +129,11 @@ jobs:
         - supplierVersion
         - codeFieldIndex
         - outputDir
+        - skipLines
         properties:
           codeFieldIndex:
-            title: Index of vendor code field
-            default: 2
+            title: Index of vendor code field (zero based)
+            default: 1
             minimum: 1
             type: integer
           outputDir:
@@ -137,9 +143,15 @@ jobs:
           supplierName:
             title: Source of the molecules
             type: string
+            format: simple
           supplierVersion:
             title: Version of the molecule source
             type: string
+          skipLines:
+            title: Skip this many lines (e.g. 1 for a file with a header line)
+            type: integer
+            default: 0
+            minimum: 0
 
   filter:
     name: Filter candidate molecules
@@ -152,12 +164,15 @@ jobs:
     - rdkit
     - ligand preparation
     - filter
+    doc-url: https://discourse.squonk.it/t/job-filter/68
     image:
       name: informaticsmatters/vs-prep
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
     command: >-
-      /code/filter.py -i /data/{{ inputDir }} -o /data/{{ outputFile }}
+      /code/filter.py -i{% for dir in inputDir %} '{{ dir }}'{% endfor %}
+      -o '{{ outputFile }}'
       --min-hac {{ minHac }}
       --max-hac {{ maxHac }}
       {% if minRotb is defined %}--min-rotb {{ minRotb }}{% endif %}
@@ -196,17 +211,16 @@ jobs:
         - inputDir
         properties:
           inputDir:
-            title: Directory with molecules to filter
-            mime-types:
-            - chemical/x-csv
-            type: dir
+            title: Directories with molecules to filter
+            type: directory
+            multiple: true
       outputs:
         type: object
         properties:
           outputFile:
             title: Filtered output
             mime-types:
-            - chemical/x-csv
+            - squonk/x-smiles
             creates: '{{ outputFile }}'
             type: file
       options:
@@ -276,61 +290,6 @@ jobs:
             title: Maximum sp3
             type: integer
             minimum: 0
-            
-  max-min-picker:
-    name: Select diverse subset of molecules
-    description: >-
-      Select a diverse subset of molecules using the RDKit MaxMin Picker.
-      Morgan 2 fingerprints and Tanimoto distance is used.
-    version: '1.0.0'
-    category: virtual screening
-    keywords:
-    - rdkit
-    - ligand preparation
-    - diverse subset
-    - filter
-    image:
-      name: informaticsmatters/vs-prep
-      tag: 'latest'
-      project-directory: /data
-    command: >-
-      /code/max_min_picker.py --input /data/{{ inputFile }} 
-      --output /data/{{ outputFile }}
-      --count {{ count }}
-      --interval 10000
-    variables:
-      inputs:
-        type: object
-        required:
-        - inputFile
-        properties:
-          inputFile:
-            title: Molecules to pick from
-            mime-types:
-            - chemical/x-csv
-            type: file
-      outputs:
-        type: object
-        properties:
-          outputFile:
-            title: Output file
-            mime-types:
-            - chemical/x-csv
-            creates: '{{ outputFile }}'
-            type: file
-      options:
-        type: object
-        required:
-        - count
-        properties:
-          outputFile:
-            titldata_dire: Output file name
-            type: string
-            default: diverse.smi
-          count:
-            title: Number of molecules to pick
-            type: integer
-            minimum: 1
 
   prep-enum-conf-lists:
     name: Prepare enumeration and conformer lists
@@ -343,17 +302,21 @@ jobs:
     - rdkit
     - ligand preparation
     - enumeration
-    - conformer generation
+    - conformer
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-prep-enum-conf-lists/70
     image:
       name: informaticsmatters/vs-prep
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
     command: >-
-      /code/prepare_enum_conf_lists.py 
-      --input /data/{{ inputFile }}
-      --data-dir /data/{{ dataDir }}
-      --outfile-enum /data/{{ outputFileEnum }}
-      --outfile-conf /data/{{ outputFileConf }}
+      /code/prepare_enum_conf_lists.py
+      --input '{{ inputFile }}'
+      --data-dir '{{ dataDir }}'
+      --outfile-enum '{{ outputFileEnum }}'
+      --outfile-conf '{{ outputFileConf }}'
+      --interval 10000
     variables:
       inputs:
         type: object
@@ -368,20 +331,21 @@ jobs:
             type: file
           dataDir:
             title: Directory with sharded data
-            type: dir
+            type: directory
+            default: molecules/sha256
       outputs:
         type: object
         properties:
           outputFileEnum:
             title: Molecules needing enumeration
             mime-types:
-            - chemical/x-csv
+            - squonk/x-smiles
             creates: '{{ outputFileEnum }}'
             type: file
           outputFileConf:
-            title: Molcules needing conformer generation
+            title: Molecules needing conformer generation
             mime-types:
-            - chemical/x-csv
+            - squonk/x-smiles
             creates: '{{ outputFileConf }}'
             type: file
       options:
@@ -397,9 +361,9 @@ jobs:
           outputFileConf:
             title: Filename for molecules needing 3D conformers
             type: string
-            default: need-conf.smi
+            default: need-confs.smi
 
-  generate-candidates:
+  assemble-conformers:
     name: Assemble conformers
     description: >-
       Assemble 3D conformers into a single SDF for suitable as input to docking.
@@ -407,16 +371,34 @@ jobs:
     category: virtual screening
     keywords:
     - ligand preparation
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-assemble-conformers/73
     image:
       name: informaticsmatters/vs-prep
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
     command: >-
-      /code/gen_candidates.py 
-      --input /data/{{ inputFile }}
-      --data-dir /data/{{ dataDir }}
-      --output /data/{{ outputFile }}
+      /code/assemble_conformers.py
+      --input '{{ inputFile }}'
+      --data-dir '{{ dataDir }}'
+      --mode {{ mode }}
+      --output '{{ outputFile }}'
+      {% if excludeBase is defined %}-exclude-base{% endif %}
+      {% if excludeTautomers is defined %}-exclude-tautomers{% endif %}
+      {% if excludeMicrostates is defined %}-exclude-microstates{% endif %}
+      --interval 1000
     variables:
+      order:
+        inputs:
+        - inputFile
+        - dataDir
+        options:
+        - outputFile
+        - mode
+        - excludeBase
+        - excludeTautomers
+        - excludeMicrostates
       inputs:
         type: object
         required:
@@ -426,20 +408,58 @@ jobs:
           inputFile:
             title: Molecules to assemble
             mime-types:
-            - chemical/x-csv
+            - squonk/x-smiles
             type: file
           dataDir:
             title: Directory with sharded data
-            type: dir
+            type: directory
+            default: molecules/sha256
       outputs:
         type: object
         properties:
           outputFile:
-            title: Assembled candidates
+            title: Assembled conformers
             mime-types:
             - chemical/x-mdl-sdfile
             creates: '{{ outputFile }}'
             type: file
+            annotation-properties:
+              fields-descriptor:
+                origin: squonk2-job
+                description: Assemble conformers
+                fields:
+                  Energy:
+                    type: number
+                    description: >-
+                      MMFF94 minimised energy
+                    required: true
+                    active: true
+                  Energy_Delta:
+                    type: number
+                    description: >-
+                      Energy difference to lowest energy conformer
+                    required: true
+                    active: true
+                  std_smi:
+                    type: string
+                    description: >-
+                      SMILES of the parent (un-enumerated) molecule
+                    required: true
+                    active: true
+                  enum_smi:
+                    type: string
+                    description: >-
+                      SMILES of the molecule
+                    required: true
+                    active: true
+                  enum_code:
+                    type: string
+                    description: >-
+                      Type of enumerated form. B=base molecule, T=tautomer, M=microstate
+                    required: true
+                    active: true
+              service-execution:
+                service_ref: 'https://discourse.squonk.it/t/job-assemble-conformers/73'
       options:
         type: object
         required:
@@ -449,27 +469,44 @@ jobs:
             title: Filename for SDF output
             type: string
             default: candidates.sdf
-            
+          mode:
+            title: Conformer mode
+            type: string
+            enum:
+            - single
+            - low-energy
+          excludeBase:
+            title: Exclude base molecules
+            type: boolean
+          excludeTautomers:
+            title: Exclude enumerated tautomers
+            type: boolean
+          excludeMicrostates:
+            title: Exclude enumerated microstates
+            type: boolean
+
   obabel-convert:
     name: Convert molecule format
     description: >-
       Convert molecular formats using OpenBabel. Can be used to prepare a protein for docking.
-      See https://open-babel.readthedocs.io/en/latest/Command-line_tools/babel.html
-      for a list of all the options.
+      See the docs for more info of all the options.
     version: '1.0.0'
     category: virtual screening
     keywords:
     - protein preparation
     - openbabel
+    doc-url: https://discourse.squonk.it/t/job-obabel-convert/77
     image:
       name: informaticsmatters/vs-prep
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
     command: >-
       obabel
-      /data/{{ inputFile }}
+      '{{ inputFile }}'
       {{ options }}
-      -O /data/{{ outputFile }}
+      {% if options is defined %}{{ options }}{% endif %}
+      -O '{{ outputFile }}'
     variables:
       inputs:
         type: object
@@ -512,24 +549,27 @@ jobs:
     name: Prepare protein using pdb2pqr
     description: >-
       Prepare a protein for docking by using pdb2pqr. This can replace missing heavy atoms
-      and protnate the protein at a specific pH taking into account the local environment 
-      of titratable groups, such as the hydrogen bonding network. 
+      and protonate the protein at a specific pH taking into account the local environment
+      of titratable groups, such as the hydrogen bonding network.
     version: '1.0.0'
     category: virtual screening
     keywords:
     - protein preparation
     - pdb2pqr
     - protonation
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-pdb2pqr/76
     image:
       name: informaticsmatters/vs-prep
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
     command: >-
       pdb2pqr30 --with-ph {{ ph }}
       --titration-state-method propka
-      --pdb-output /data/{{ outfileBasename }}.pdb
-      /data/{{ inputFile }}
-      /data/{{ outfileBasename }}.pqr
+      --pdb-output '{{ outfileBasename }}.pdb'
+      '{{ inputFile }}'
+      '{{ outfileBasename }}.pqr'
     variables:
       inputs:
         type: object
@@ -575,8 +615,27 @@ jobs:
           outfileBasename:
             title: Base filename for output (do not include the extension)
             type: string
+            pattern: "^[A-Za-z0-9_/\\.\\-]+$"
+    tests:
+      simple-execution:
+        inputs:
+          inputFile: data/dhfr-receptor.pdb
+        options:
+          outfileBasename: pdb2pqr-results
+          ph: 7
+        checks:
+          exitCode: 0
+          outputs:
+          - name: pdb2pqr-results.pqr
+            checks:
+            - exists: true
+          - name: pdb2pqr-results.pdb
+            checks:
+            - exists: true
+          - name: pdb2pqr-results.log
+            checks:
+            - exists: true
 
-            
   prepare-rdock:
     name: rDock prepare
     description: >-
@@ -586,15 +645,18 @@ jobs:
     keywords:
     - protein preparation
     - rdock
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-prepare-rdock/75
     image:
       name: informaticsmatters/vs-rdock
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
     command: >-
-      /code/prepare_rdock.py 
-      --receptor /data/{{ receptorFile }}
-      --ligand /data/{{ ligandFile }}
-      --output /data/{{ outputBaseName }}
+      /code/prepare_rdock.py
+      --receptor '{{ receptorFile }}'
+      --ligand '{{ ligandFile }}'
+      --output '{{ outputBaseName }}'
     variables:
       inputs:
         type: object
@@ -636,13 +698,249 @@ jobs:
             title: Base name for output files
             type: string
             default: docking
-                          
-  # nextflow jobs                      
+
+  ultrafast-shape-recognition:
+    name: USR shape similarity
+    description: >-
+      Filters molecules using 3D shape similarity and the USR, Electroshape or USRCAT algorithms
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - oddt
+    - similarity
+    - shape
+    - usr
+    - electroshape
+    - usrcat
+    - filter
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-ultrafast-shape-recognition/87
+    image:
+      name: informaticsmatters/vs-oddt
+      tag: 'latest'
+      project-directory: /data
+      working-directory: /data
+    command: >-
+      /code/usr.py --inputs '{{ inputFile }}'
+      --query '{{ queryFile }}'
+      --outfile '{{ outputFile }}'
+      --method {{ method }}
+      --threshold {{ threshold }}
+      {% if groupBy is defined %}--group-by-field {{ groupBy }}{% endif %}
+      --interval 1000
+    variables:
+      order:
+        inputs:
+        - queryFile
+        - inputFile
+        options:
+        - method
+        - threshold
+        - groupBy
+        - outputFile
+      inputs:
+        type: object
+        required:
+        - queryFile
+        - inputFile
+        properties:
+          inputFile:
+            title: Molecules to screen
+            mime-types:
+            - chemical/x-mdl-sdfile
+            type: file
+          queryFile:
+            title: Query molecule
+            mime-types:
+            - chemical/x-mdl-molfile
+            - chemical/x-mdl-sdfile
+            type: file
+      outputs:
+        type: object
+        properties:
+          outputFile:
+            title: Output file
+            mime-types:
+            - chemical/x-mdl-sdfile
+            creates: '{{ outputFile }}'
+            type: file
+            annotation-properties:
+              fields-descriptor:
+                origin: squonk2-job
+                description: Molecular shape similarity
+                fields:
+                  similarity:
+                    expression: '{{ method }}_similarity'
+                    type: number
+                    description: >-
+                      Shape similarity
+                    required: true
+                    active: true
+              service-execution:
+                service_ref: 'https://discourse.squonk.it/t/job-ultrafast-shape-recognition/87'
+              derived-from: inputFile
+      options:
+        type: object
+        required:
+        - method
+        - threshold
+        - outputFile
+        properties:
+          method:
+            title: USR method
+            type: string
+            enum:
+            - usr
+            - electroshape
+            - usrcat
+          outputFile:
+            title: Output file name
+            type: string
+            default: usr-similarity.sdf
+          threshold:
+            title: Similarity threshold
+            type: number
+            minimum: 0
+            maximum: 1
+          groupBy:
+            title: Group by field
+            type: string
+            default: std_smi
+
+  filter-sdf:
+    name: Filter the contents of a SDF
+    description: >-
+      Filters molecules in a SD file.
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - rdock
+    - sdfilter
+    - sdsort
+    - filter
+    doc-url: 'https://discourse.squonk.it/t/job-filter-sdf/105'
+    image:
+      name: informaticsmatters/vs-rdock
+      tag: 'latest'
+      project-directory: /data
+      working-directory: /data
+    command: >-
+      /code/rdock_filter_sdf.sh '{{ inputFile }}' '{{ outputFile }}'
+        {{ sortField }}
+        {% if sortDescending %}true{% else %}false{% endif %}
+        {% if groupByField is defined %}{{ groupByField }}{% endif %}
+    variables:
+      order:
+        options:
+        - outputFile
+        - sortField
+        - groupByField
+        - sortDescending
+      inputs:
+        type: object
+        required:
+        - inputFile
+        properties:
+          inputFile:
+            title: Molecules to filter
+            mime-types:
+            - chemical/x-mdl-sdfile
+            type: file
+      outputs:
+        type: object
+        properties:
+          outputFile:
+            title: Output file
+            mime-types:
+            - chemical/x-mdl-sdfile
+            creates: '{{ outputFile }}'
+            type: file
+      options:
+        type: object
+        required:
+        - outputFile
+        - sortField
+        - sortDescending
+        properties:
+          outputFile:
+            title: Output file name
+            type: string
+            pattern: "^[A-Za-z0-9_/\\.\\-]+\\.sdf$"
+          sortField:
+            title: Sort field
+            type: string
+            pattern: "^[A-Za-z0-9_\\.\\- ]+$"
+          groupByField:
+            title: Group by field
+            type: string
+            pattern: "^[A-Za-z0-9_\\.\\- ]+$"
+          sortDescending:
+            title: Sort descending
+            type: boolean
+            default: false
+
+  sdf2json:
+    name: Convert SDF to JSON format
+    description: >-
+      Converts a SD file to Squonk JSON format
+    version: '1.0.0'
+    category: virtual screening
+    keywords:
+    - convert
+    - format
+    image:
+      name: informaticsmatters/vs-prep
+      tag: 'latest'
+      project-directory: /data
+      working-directory: /data
+    command: >-
+      /code/convert_file.py --input-file '{{ inputFile }}'
+      --input-format chemical/x-mdl-sdfile
+      --output-file {{ outputFile }}
+      --output-format squonk/x-dataset-molecule-v2+json
+      --interval 10000
+    variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        properties:
+          inputFile:
+            title: Molecules
+            mime-types:
+            - chemical/x-mdl-sdfile
+            type: file
+      outputs:
+        type: object
+        properties:
+          outputFile:
+            title: Output file
+            mime-types:
+            - squonk/x-dataset-molecule-v2+json
+            creates: '{{ outputFile }}'
+            type: file
+            annotation-properties:
+              service-execution:
+                service_ref: 'https://discourse.squonk.it/t/job-rdk-props/91'
+              derived-from: inputFile
+      options:
+        type: object
+        required:
+        - outputFile
+        properties:
+          outputFile:
+            title: Output file name
+            type: string
+            pattern: "^[A-Za-z0-9_/\\.\\-]+\\.json$"
+
+  ####################
+  # nextflow jobs
+  ####################
   enumerate-candidates:
     name: Enumerate microstates, tautomers and undefined chiral centres
     description: >-
       Enumerate microstates, tautomers and undefined chiral centres. Inputs are defined
-      by the prep-enum-conf-lists job. 
+      by the prep-enum-conf-lists job.
     version: '1.0.0'
     category: virtual screening
     keywords:
@@ -651,17 +949,21 @@ jobs:
     - enumeration
     - dimorphite_dl
     - nextflow
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-enumerate-candidates/71
     image:
       name: informaticsmatters/vs-nextflow
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
       type: nextflow
     command: >-
-      nextflow run /code/enumerate.nf
-      --inputs /data/{{ inputFile }}
-      --data_dir /data/{{ dataDir }}
-      -with-trace
-      -with-report
+      nextflow -log {{ DM_INSTANCE_DIRECTORY }}/nextflow.log
+      run {{ CODE_DIRECTORY|default('/code') }}/enumerate.nf
+      --inputs '{{ inputFile }}'
+      --data_dir '{{ dataDir }}'
+      -with-trace {{ DM_INSTANCE_DIRECTORY }}/trace.txt
+      -with-report {{ DM_INSTANCE_DIRECTORY }}/report.html
     variables:
       inputs:
         type: object
@@ -676,7 +978,8 @@ jobs:
             type: file
           dataDir:
             title: Directory with sharded data
-            type: dir
+            type: directory
+            default: molecules/sha256
       outputs:
         type: object
         properties:
@@ -684,44 +987,38 @@ jobs:
             title: Enumerated molecules
             mime-types:
             - chemical/x-csv
-            creates: '{{ dataDir }}/sha256/*/*/*.smi'
+            creates: '{{ dataDir }}/*/*/*.smi'
             # additional *.smi files might have already been generated
-            type: directory
-          trace_file:
-            title: Nextflow trace file
-            creates: trace.txt
-            mime-types:
-            - text/plain
-          report_file:
-            title: Nextflow report file
-            creates: report.html
-            mime-types:
-            - text/html
+            type: files
       # there are no options for this job
-      
-  generate-conformer:
-    name: Generate 3D conformer
+
+  generate-low-energy-conformers:
+    name: Generate 3D conformers (sharded)
     description: >-
-      Generate a single 3D conformer of molecules. Inputs are defined
-      by the prep-enum-conf-lists job.
+      Generate a low energy 3D conformers of molecules. Inputs are defined
+      by the prep-enum-conf-lists job and outputs are written to the sharded file system.
     version: '1.0.0'
     category: virtual screening
     keywords:
-    - openbabel
+    - rdkit
     - ligand preparation
     - conformer
     - nextflow
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-generate-low-energy-conformers/86
     image:
       name: informaticsmatters/vs-nextflow
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
       type: nextflow
     command: >-
-      nextflow run /code/gen_conformer.nf
-      --inputs /data/{{ inputFile }}
-      --data_dir /data/{{ dataDir }}
-      -with-trace
-      -with-report
+      nextflow -log {{ DM_INSTANCE_DIRECTORY }}/nextflow.log
+      run {{ CODE_DIRECTORY|default('/code') }}/le_conformers.nf
+      --inputs '{{ inputFile }}'
+      --data_dir '{{ dataDir }}'
+      -with-trace {{ DM_INSTANCE_DIRECTORY }}/trace.txt
+      -with-report {{ DM_INSTANCE_DIRECTORY }}/report.html
     variables:
       inputs:
         type: object
@@ -736,7 +1033,8 @@ jobs:
             type: file
           dataDir:
             title: Directory with sharded data
-            type: dir
+            type: directory
+            default: molecules/sha256
       outputs:
         type: object
         properties:
@@ -744,21 +1042,11 @@ jobs:
             title: 3D conformers
             mime-types:
             - chemical/x-mdl-sdfile
-            creates: '{{ dataDir }}/sha256/*/*/*.sdf'
+            creates: '{{ dataDir }}/sha256/*/*/*_le_confs.sdf'
             # additional *.sdf files might have already been generated
-            type: directory
-          trace_file:
-            title: Nextflow trace tile
-            creates: trace.txt
-            mime-types:
-            - text/plain
-          report_file:
-            title: Nextflow report file
-            creates: report.html
-            mime-types:
-            - text/html
+            type: files
       # there are no options for this job
-      
+
   run-rdock:
     name: Run rRock docking
     description: >-
@@ -769,22 +1057,38 @@ jobs:
     - rdock
     - docking
     - nextflow
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-run-rdock/74
     image:
       name: informaticsmatters/vs-nextflow
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
       type: nextflow
     command: >-
-      nextflow run -c /code/nextflow.config /code/rdock-docking.nf
-      --ligands /data/{{ ligandsSDF }}
-      --protein /data/{{ proteinMOL2 }}
-      --prmfile /data/{{ prmFile }}
-      --asfile /data/{{ asFile }}
+      nextflow -log {{ DM_INSTANCE_DIRECTORY }}/nextflow.log
+      run {{ CODE_DIRECTORY|default('/code') }}/rdock-docking.nf
+      --ligands '{{ ligandsSDF }}'
+      --protein '{{ proteinMOL2 }}'
+      --prmfile '{{ prmFile }}'
+      --asfile '{{ asFile }}'
       --num_dockings {{ numDockings }}
-      --publishDir /data/results
-      -with-trace
-      -with-report
+      --output_basename {{ outputFile }}
+      --mode {{ mode }}
+      {% if resultsDir is defined %}--publish_dir {{ resultsDir }}{% endif %}
+      -with-trace {{ DM_INSTANCE_DIRECTORY }}/trace.txt
+      -with-report {{ DM_INSTANCE_DIRECTORY }}/report.html
     variables:
+      order:
+        options:
+        - resultsDir
+        - outputFile
+        - ligandsSDF
+        - proteinMOL2
+        - prmFile
+        - asFile
+        - numDockings
+        - mode
       inputs:
         type: object
         required:
@@ -820,33 +1124,53 @@ jobs:
             title: Docked poses
             mime-types:
             - chemical/x-mdl-sdfile
-            creates: 'results/results.sdf.gz'
+            creates: '{% if resultsDir is defined %}{{ resultsDir }}/{% endif %}{{ outputFile }}.sdf'
             type: file
-          dockedTXT:
-            title: Pose report file
-            mime-types:
-            - text/csv
-            creates: 'results/results.txt'
-            type: file
-          trace_file:
-            title: Nextflow trace file
-            creates: trace.txt
-            mime-types:
-            - text/plain
-          report_file:
-            title: Nextflow report file
-            creates: report.html
-            mime-types:
-            - text/html
       options:
         type: object
         required:
         - numDockings
+        - outputFile
+        - mode
         properties:
+          outputFile:
+            title: Base filename for results (no extension)
+            type: string
+            default: results_rdock
+            pattern: "^[A-Za-z0-9_\\.\\-]+$"
+          resultsDir:
+            title: Dir for results
+            type: string
+            pattern: "^[A-Za-z0-9_/\\.\\-]*[A-Za-z0-9_\\.\\-]+$"
           numDockings:
-            title: Number of dockings for each molecule
+            title: Number of dockings
             type: integer
             default: 50
+          mode:
+            title: Docking mode
+            type: string
+            default: dock
+            enum:
+            - dock
+            - minimise
+            - score
+    tests:
+      simple-execution:
+        inputs:
+          ligandsSDF: data/candidates-10.sdf
+          proteinMOL2: data/dhfr-receptor-ph7.mol2
+          prmFile: data/docking.prm
+          asFile: data/docking.as
+        options:
+          outputFile: rdock_results
+          numDockings: 1
+          mode: dock
+        checks:
+          exitCode: 0
+          outputs:
+          - name: rdock_results.sdf
+            checks:
+            - exists: true
 
   run-smina:
     name: Run smina docking
@@ -858,23 +1182,35 @@ jobs:
     - smina
     - docking
     - nextflow
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-run-smina/78
     image:
       name: informaticsmatters/vs-nextflow
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
       type: nextflow
     command: >-
-      nextflow run -c /code/nextflow.config /code/smina-docking.nf
-      --ligands /data/{{ ligands }}
-      --protein /data/{{ protein }}
-      --ligand /data/{{ ligand }}
+      nextflow -log {{ DM_INSTANCE_DIRECTORY }}/nextflow.log
+      run {{ CODE_DIRECTORY|default('/code') }}/smina-docking.nf
+      --ligands '{{ ligands }}'
+      --protein '{{ protein }}'
+      --ligand '{{ ligand }}'
       --padding {{ boxPadding }}
       --exhaustiveness {{ exhaustiveness }}
-      --scoring_function {{ scoringFunction }}
-      --publishDir /data/results
-      -with-trace
-      -with-report
+      --scoring_function '{{ scoringFunction }}'
+      {% if resultsDir is defined %}--publish_dir '{{ resultsDir }}'{% endif %}
+      --output_basename '{{ outputFile }}'
+      -with-trace {{ DM_INSTANCE_DIRECTORY }}/trace.txt
+      -with-report {{ DM_INSTANCE_DIRECTORY }}/report.html
     variables:
+      order:
+        options:
+        - resultsDir
+        - outputFile
+        - boxPadding
+        - exhaustiveness
+        - scoringFunction
       inputs:
         type: object
         required:
@@ -902,7 +1238,6 @@ jobs:
             - chemical/x-pdb
             - chemical/x-pdbqt
             type: file
-
       outputs:
         type: object
         properties:
@@ -910,25 +1245,39 @@ jobs:
             title: Docked poses
             mime-types:
             - chemical/x-mdl-sdfile
-            creates: 'results/results_smina.sdf'
+            creates: '{% if resultsDir is defined %}{{ resultsDir }}/{% endif %}{{ outputFile }}.sdf'
             type: file
-          trace_file:
-            title: Nextflow trace file
-            creates: trace.txt
-            mime-types:
-            - text/plain
-          report_file:
-            title: Nextflow report file
-            creates: report.html
-            mime-types:
-            - text/html
+            annotation-properties:
+              fields-descriptor:
+                origin: squonk2-job
+                description: Run smina docking
+                fields:
+                  minimizedAffinity:
+                    type: number
+                    description: >-
+                      Binding affinity predicted by smina docking
+                    required: true
+                    active: true
+              service-execution:
+                service_ref: 'https://discourse.squonk.it/t/job-run-smina/78'
+              derived-from: ligands
       options:
         type: object
         required:
         - boxPadding
         - exhaustiveness
         - scoringFunction
+        - outputFile
         properties:
+          resultsDir:
+            title: Directory for results
+            type: string
+            pattern: "^[A-Za-z0-9_/\\.\\-]*[A-Za-z0-9_\\.\\-]+$"
+          outputFile:
+            title: Base filename for results (no extension)
+            type: string
+            default: results_smina
+            pattern: "^[A-Za-z0-9_\\.\\-]+$"
           boxPadding:
             title: Box definition padding
             type: number
@@ -939,17 +1288,15 @@ jobs:
             default: 8
           scoringFunction:
             title: Scoring function to use
-            type: array
-            items:
-            - type: string
-              enum:
-              - ad4_scoring
-              - dkoes_fast
-              - dkoes_scoring
-              - dkoes_scoring_old
-              - vina
-              - vinardo
-            
+            type: string
+            enum:
+            - ad4_scoring
+            - dkoes_fast
+            - dkoes_scoring
+            - dkoes_scoring_old
+            - vina
+            - vinardo
+
   oddt-score-interactions:
     name: ODDT rescoring and interactions
     description: >-
@@ -960,18 +1307,23 @@ jobs:
     - oddt
     - docking
     - nextflow
+    - 3d
+    doc-url: https://discourse.squonk.it/t/job-oddt-score-interactions/79
     image:
       name: informaticsmatters/vs-nextflow
       tag: 'latest'
       project-directory: /data
+      working-directory: /data
       type: nextflow
     command: >-
-      nextflow run /code/oddt.nf
-      --ligands /data/{{ ligandsSDF }}
-      --protein /data/{{ proteinPDB }}
-      --publishDir /data/results
-      -with-trace
-      -with-report
+      nextflow -log {{ DM_INSTANCE_DIRECTORY }}/nextflow.log
+      run {{ CODE_DIRECTORY|default('/code') }}/oddt-interactions.nf
+      --ligands '{{ ligandsSDF }}'
+      --protein '{{ proteinPDB }}'
+      {% if resultsDir is defined %}--publish_dir '{{ resultsDir }}'{% endif %}
+      --output_filename '{{ outputFile }}'
+      -with-trace {{ DM_INSTANCE_DIRECTORY }}/trace.txt
+      -with-report {{ DM_INSTANCE_DIRECTORY }}/report.html
     variables:
       inputs:
         type: object
@@ -996,16 +1348,19 @@ jobs:
             title: Scored poses
             mime-types:
             - chemical/x-mdl-sdfile
-            creates: 'results/results_oddt.sdf.gz'
+            creates: '{% if resultsDir is defined %}{{ resultsDir }}/{% endif %}{{ outputFile }}'
             type: file
-          trace_file:
-            title: Nextflow trace file
-            creates: trace.txt
-            mime-types:
-            - text/plain
-          report_file:
-            title: Nextflow report file
-            creates: report.html
-            mime-types:
-            - text/html
-      # there are no options for this job
+      options:
+        type: object
+        required:
+        - outputFile
+        properties:
+          resultsDir:
+            title: Directory for results
+            type: string
+            pattern: "^[A-Za-z0-9_/\\.\\-]*[A-Za-z0-9_\\.\\-]+$"
+          outputFile:
+            title: Filename for results
+            type: string
+            default: oddt_interactions.sdf
+            pattern: "^[A-Za-z0-9_\\.\\-]+\\.sdf$"
