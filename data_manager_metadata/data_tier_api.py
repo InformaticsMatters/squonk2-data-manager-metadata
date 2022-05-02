@@ -449,10 +449,12 @@ def _get_params_filename(filepath: str) -> str:
     return filename_stem + _PARAM_EXT
 
 
-def _create_param_file(fields: Dict[str, Any], result_path: str, result_filename: str):
+def _create_param_file(
+    fields: Dict[str, Any], result_path: str, result_filename: str
+) -> str:
     """Creates a parameter file if requested from the fields that were added in
     Service Execution annotation.
-
+    Returns the filename if created
     """
     params_filename = _get_params_filename(result_filename)
     params_path = os.path.join(result_path, params_filename)
@@ -465,6 +467,8 @@ def _create_param_file(fields: Dict[str, Any], result_path: str, result_filename
         # Dump params of fields created
         json.dump(result_params, params_file)
 
+    return params_path
+
 
 def _create_annotations(
     project_directory: str,
@@ -473,7 +477,7 @@ def _create_annotations(
     output_spec: Dict[str, Any],
     username: str,
     create_param_file: bool = False,
-) -> Tuple[bool, bool]:
+) -> Tuple[list, str]:
 
     """For each specified output file with a set of annotations-parameters,
     create a metadata file in the directory specified.
@@ -491,15 +495,18 @@ def _create_annotations(
 
     """
 
+    meta_files = []
+    param_files = ''
+
     # Some sanity-checking before we go any further...
     if not project_directory:
-        return False, False
+        return meta_files, param_files
     if not output_spec["creates"]:
-        return False, False
+        return meta_files, param_files
     if not output_spec["annotation-properties"].get('fields-descriptor'):
-        return False, False
+        return meta_files, param_files
     if not output_spec["annotation-properties"].get('service-execution'):
-        return False, False
+        return meta_files, param_files
 
     basic_logger.info('sanity checks OK')
 
@@ -537,7 +544,7 @@ def _create_annotations(
             derived_metadata, annotations=se_annotation
         )
     else:
-        return False, False
+        return meta_files, param_files
 
     basic_logger.info('results_metadata=%s', results_metadata)
 
@@ -550,7 +557,7 @@ def _create_annotations(
     result_path = os.path.join(project_directory, result_dir)
 
     if not os.path.isdir(result_path):
-        return False, False
+        return meta_files, param_files
 
     results_metadata_path = os.path.join(result_path, results_metadata_filename)
     results_schema_path = os.path.join(result_path, results_schema_filename)
@@ -558,21 +565,19 @@ def _create_annotations(
     with open(results_metadata_path, 'wt', encoding='utf8') as meta_file:
         # Dump metadata including the SE annotation
         json.dump(results_metadata, meta_file)
+        meta_files.append(results_metadata_path)
 
     with open(results_schema_path, 'wt', encoding='utf8') as schema_file:
         # Dump metadata including the SE annotation
         json.dump(results_schema, schema_file)
+        meta_files.append(results_schema_path)
 
     basic_logger.info('fields=%s', fields)
 
     if fields and create_param_file:
-        _create_param_file(fields, result_path, result_filename)
-    else:
-        return True, False
+        param_files = _create_param_file(fields, result_path, result_filename)
 
-    # XXXX Set file permissions -> do I need to return the filenames created by this job??
-
-    return True, True
+    return meta_files, param_files
 
 
 def create_job_annotations(
@@ -581,7 +586,7 @@ def create_job_annotations(
     job_rendered_spec: Dict[str, Any],
     username: str,
     create_param_file: bool = False,
-) -> Tuple[bool, bool]:
+) -> list:
     """Update(Create) travelling metadata class(es) with Service Execution annotation generated
     from a Squonk job definition.
 
@@ -604,23 +609,22 @@ def create_job_annotations(
                             Execution.
 
     Returns:
-        metadata: bool - returns true if at least one metadata file has been generated
-        params: bool - returns true if at least one param_file has been generated
+        metadata: list - returns a list of metadata and schema files have been created
+        params: list - returns a list of any param_files that have been created
     """
 
     # Say Hello
     basic_logger.info('+ create_job_annotations')
 
-    metadata = False
-    params = False
+    written_files = []
     outputs: Optional[Dict[str, Any]] = job_rendered_spec.get('outputs')
     if not outputs:
-        return metadata, params
+        return written_files
 
     # Loop through the output specifications for the different outputs
     for output_spec in outputs.values():
         if output_spec.get('annotation-properties'):
-            meta, params = _create_annotations(
+            meta, param_file = _create_annotations(
                 project_directory,
                 job_application_spec,
                 job_rendered_spec,
@@ -629,9 +633,10 @@ def create_job_annotations(
                 create_param_file,
             )
 
-            if meta:
-                metadata = True
-            if params:
-                params = True
+            basic_logger.info('meta_files=%s', meta)
+            basic_logger.info('param_files=%s', param_file)
+            written_files.extend(meta)
+            if param_file:
+                written_files.append(param_file)
 
-    return metadata, params
+    return written_files

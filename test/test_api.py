@@ -548,12 +548,11 @@ class DataTierTestCase(unittest.TestCase):
             'debug': True,
         }
 
-        meta, params = create_job_annotations(
+        written_files = create_job_annotations(
             proj_dir, job_application_spec, job_rendered_spec, 'testuser', False
         )
 
-        self.assertEqual(meta, True)
-        self.assertEqual(params, False)
+        self.assertEqual(len(written_files), 2)
 
         # The results metadata file is: results_smina.meta.json
         results_metadata_path = os.path.join(proj_dir, 'results_smina.meta.json')
@@ -645,12 +644,11 @@ class DataTierTestCase(unittest.TestCase):
             'debug': True,
         }
 
-        meta, params = create_job_annotations(
+        written_files = create_job_annotations(
             proj_dir, job_application_spec, job_rendered_spec, 'testuser', False
         )
 
-        self.assertEqual(meta, True)
-        self.assertEqual(params, False)
+        self.assertEqual(len(written_files), 2)
 
         # The results metadata file is: results_smina.meta.json
         results_metadata_path = os.path.join(proj_dir, 'results_smina.meta.json')
@@ -733,12 +731,12 @@ class DataTierTestCase(unittest.TestCase):
         print(job_application_spec)
         print(job_rendered_spec)
 
-        meta, params = create_job_annotations(
+        written_files = create_job_annotations(
             proj_dir, job_application_spec, job_rendered_spec, 'testuser', False
         )
 
-        self.assertEqual(meta, True)
-        self.assertEqual(params, False)
+        self.assertEqual(len(written_files), 2)
+
         # The results metadata file is: tim-merged.meta.json
         results_metadata_path = os.path.join(proj_dir, 'tim-merged.meta.json')
         with open(results_metadata_path, 'rt', encoding='utf8') as meta_file:
@@ -820,12 +818,12 @@ class DataTierTestCase(unittest.TestCase):
         print(job_application_spec)
         print(job_rendered_spec)
 
-        meta, params = create_job_annotations(
+        written_files = create_job_annotations(
             proj_dir, job_application_spec, job_rendered_spec, 'testuser', True
         )
 
-        self.assertEqual(meta, True)
-        self.assertEqual(params, True)
+        self.assertEqual(len(written_files), 3)
+
         # The results params file is: tim-merged.params.json
         results_params_path = os.path.join(proj_dir, 'tim-merged.params.json')
         with open(results_params_path, 'rt', encoding='utf8') as params_file:
