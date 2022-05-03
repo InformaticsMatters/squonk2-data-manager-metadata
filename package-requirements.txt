@@ -8,8 +8,9 @@ coverage == 6.3.2
 pylint == 2.13.5
 pyroma
 setuptools == 56.2.0
-PyYAML == 5.3
 pre-commit == 2.18.1
+PyYAML == 5.4.1
+im-data-manager-job-decoder == 1.8.0
 
 # In order to run 'python setup.py bdist_wheel'...
 wheel == 0.36.2

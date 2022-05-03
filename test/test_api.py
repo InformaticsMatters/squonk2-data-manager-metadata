@@ -2,6 +2,8 @@ import unittest
 import os
 import json
 
+# from yaml import safe_load
+# from decoder import decoder
 
 from data_manager_metadata.metadata import (
     FieldsDescriptorAnnotation,
@@ -748,7 +750,7 @@ class DataTierTestCase(unittest.TestCase):
 
     def test_23_fragstein_annotation_no_existing_metadata_fields(self):
         print('23 fragstein annotation no existing metadata fields')
-        proj_dir = 'test/output/api/23/'
+        proj_dir = 'test/output/api/24/'
         if not os.path.isdir(proj_dir):
             os.makedirs(proj_dir)
 
@@ -831,6 +833,113 @@ class DataTierTestCase(unittest.TestCase):
             self.assertEqual(len(results_params), 3)
 
         print('\nTest 23 ok')
+
+    # def test_24_smina_annotation_with_existing_metadata(self):
+    #     # Similar to 20 but using the library to render the rendered_spec
+    #
+    #     print('24 smina annotation with existing metadata')
+    #     proj_dir = 'test/output/api/21/'
+    #     if not os.path.isdir(proj_dir):
+    #         os.makedirs(proj_dir)
+    #
+    #     dataset_metadata, dummy = post_dataset_metadata(
+    #         'candidates-10.sdf',
+    #         'none',
+    #         'Metadata created by test for candidates-10.sdf',
+    #         'testuser',
+    #     )
+    #
+    #     version_metadata, dummy = post_version_metadata(dataset_metadata, 1)
+    #
+    #     travelling_metadata, dummy = get_travelling_metadata(
+    #         dataset_metadata, version_metadata
+    #     )
+    #
+    #     # The derived-from "ligands" file is: candidates-10.sdf
+    #     travelling_metadata_path = os.path.join(proj_dir, 'candidates-10.meta.json')
+    #
+    #     with open(travelling_metadata_path, 'wt', encoding='utf8') as meta_file:
+    #         json.dump(travelling_metadata, meta_file)
+    #
+    #     job_application_spec = {
+    #         "collection": "im-rdkit-virtual-screening",
+    #         "job": "run-smina",
+    #         "version": "1.0.0",
+    #         "variables": {
+    #             "ligand": "dhfr-ligand.mol",
+    #             "ligands": "candidates-10.sdf",
+    #             "protein": "dhfr-receptor-ph7.pdb",
+    #             "boxPadding": 4,
+    #             "exhaustiveness": 8,
+    #             "scoringFunction": "vina",
+    #         },
+    #     }
+    #
+    #     with open('test/input/virtual-screening.yaml', 'rt') as yaml_file:
+    #         yaml_dict = safe_load(yaml_file)
+    #         smina_job = yaml_dict['jobs']['run-smina']
+    #
+    #     print(smina_job['variables'])
+    #     print(job_application_spec['variables'])
+    #
+    #     job_rendered_spec, success = decoder.decode(smina_job['variables'], job_application_spec['variables'],
+    #                                               'command',
+    #                                               decoder.TextEncoding.JINJA2_3_0)
+    #
+    #     print (job_rendered_spec)
+    #     print (success)
+    #     # job_rendered_spec = {
+    #     #     'collection': 'im-virtual-screening',
+    #     #     'job': 'run-smina',
+    #     #     'version': '1.0.0',
+    #     #     'image': 'informaticsmatters/vs-nextflow:latest',
+    #     #     'type': 'NEXTFLOW',
+    #     #     'projectMount': '/data',
+    #     #     'workingDirectory': '/data',
+    #     #     'command': "nextflow -log .instance-e83457e7-5995-4d96-9ebd-00eba831fe89/nextflow.log run /code/smina-docking.nf --ligands 'candidates-10.sdf' --protein 'dhfr-receptor-ph7.pdb' --ligand 'dhfr-ligand.mol' --padding 4 --exhaustiveness 8 --scoring_function 'vina' --publish_dir './' --output_basename 'results_smina' -with-trace .instance-e83457e7-5995-4d96-9ebd-00eba831fe89/trace.txt -with-report .instance-e83457e7-5995-4d96-9ebd-00eba831fe89/report.html",
+    #     #     'outputs': {
+    #     #         'dockedSDF': {
+    #     #             'title': 'Docked poses',
+    #     #             'mime-types': ['chemical/x-mdl-sdfile'],
+    #     #             'creates': './/results_smina.sdf',
+    #     #             'type': 'file',
+    #     #             'annotation-properties': {
+    #     #                 'fields-descriptor': {
+    #     #                     'origin': 'squonk2-job',
+    #     #                     'description': 'Run smina docking',
+    #     #                     'fields': {
+    #     #                         'minimizedAffinity': {
+    #     #                             'type': 'number',
+    #     #                             'description': 'Binding affinity predicted by smina docking',
+    #     #                             'required': True,
+    #     #                             'active': True,
+    #     #                         }
+    #     #                     },
+    #     #                 },
+    #     #                 'service-execution': {
+    #     #                     'service_ref': 'https://discourse.squonk.it/t/job-run-smina/78'
+    #     #                 },
+    #     #                 'derived-from': 'ligands',
+    #     #             },
+    #     #         }
+    #     #     },
+    #     #     'debug': True,
+    #     # }
+    #
+    #     written_files = create_job_annotations(
+    #         proj_dir, job_application_spec, job_rendered_spec, 'testuser', False
+    #     )
+    #
+    #     self.assertEqual(len(written_files), 2)
+    #
+    #     # The results metadata file is: results_smina.meta.json
+    #     results_metadata_path = os.path.join(proj_dir, 'results_smina.meta.json')
+    #     with open(results_metadata_path, 'rt', encoding='utf8') as meta_file:
+    #         results_metadata = json.load(meta_file)
+    #         self.assertEqual(results_metadata['dataset_name'], 'candidates-10.sdf')
+    #         self.assertEqual(len(results_metadata['annotations']), 1)
+    #
+    #     print('\nTest 24 ok')
 
 
 if __name__ == '__main__':

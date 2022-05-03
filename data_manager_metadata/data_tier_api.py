@@ -364,17 +364,18 @@ def _get_derived_metadata(
 
     # Create the dictionary with the remaining parameters
     metadata = Metadata(derived_from, 'None', 'Automatically created by job', username)
+    metadata.set_synchronised_datetime()
+
     return metadata.to_dict()
 
 
 def _create_service_execution(
     service_parameters: Dict[str, Any], username: str, output_spec
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> Dict[str, Any]:
     """Creates a service execution annotation based on the input specification
 
     Returns:
-         1. The service execution annotation and
-         2. the Fields that have been added (used in creating the parameters file.
+         The service execution annotation
     """
 
     fields_descriptor = output_spec["annotation-properties"]['fields-descriptor']
@@ -425,13 +426,13 @@ def _create_service_execution(
             fields_descriptor['description'],
             fields_descriptor['fields'],
         )
-        return annotation.to_dict(), fields_descriptor['fields']
+        return annotation.to_dict()
     except AnnotationValidationError as e:
         basic_logger.info('AnnotationValidationError=%s', e.message)
-        return None, None
+        return
     except:  # pylint: disable=bare-except
         basic_logger.info('Unexpected Error')
-        return None, None
+        return
 
 
 def _get_params_filename(filepath: str) -> str:
@@ -450,7 +451,7 @@ def _get_params_filename(filepath: str) -> str:
 
 
 def _create_param_file(
-    fields: Dict[str, Any], result_path: str, result_filename: str
+    results_metadata: Dict[str, Any], result_path: str, result_filename: str
 ) -> str:
     """Creates a parameter file if requested from the fields that were added in
     Service Execution annotation.
@@ -458,9 +459,10 @@ def _create_param_file(
     """
     params_filename = _get_params_filename(result_filename)
     params_path = os.path.join(result_path, params_filename)
+    metadata = Metadata(**results_metadata)
 
     result_params = {}
-    for key, values in fields.items():
+    for key, values in metadata.get_compiled_fields()['fields'].items():
         result_params[key] = values['description']
 
     with open(params_path, 'wt', encoding='utf8') as params_file:
@@ -533,9 +535,7 @@ def _create_annotations(
     else:
         derived_metadata = _get_derived_metadata(project_directory, username)
 
-    se_annotation, fields = _create_service_execution(
-        service_parameters, username, output_spec
-    )
+    se_annotation = _create_service_execution(service_parameters, username, output_spec)
 
     basic_logger.info('se_annotation=%s', se_annotation)
 
@@ -572,10 +572,8 @@ def _create_annotations(
         json.dump(results_schema, schema_file)
         meta_files.append(results_schema_path)
 
-    basic_logger.info('fields=%s', fields)
-
-    if fields and create_param_file:
-        param_files = _create_param_file(fields, result_path, result_filename)
+    if create_param_file:
+        param_files = _create_param_file(results_metadata, result_path, result_filename)
 
     return meta_files, param_files
 
