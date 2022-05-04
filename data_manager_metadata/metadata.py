@@ -299,9 +299,10 @@ class Metadata:
             self._create_label(label_row)
         self.last_updated = datetime.datetime.utcnow()
 
-    def get_unapplied_labels(self, synchronised_datetime: str):
+    def get_labels_existing_dataset(self, synchronised_datetime: str):
         """Get a list of the labels from the labels list that were applied
-        after a given datetime (used for synchronising travelling metadata
+        after a given datetime (used for synchronising travelling metadata with
+        an existing dataset when adding labels
         """
         compare_datetime = datetime.datetime.strptime(
             synchronised_datetime, '%Y-%m-%dT%H:%M:%S.%f'
@@ -311,18 +312,36 @@ class Metadata:
             label.to_dict() for label in self.labels if label.created > compare_datetime
         ]
 
-    def get_labels(self, active=None, labels_only=False):
+    def get_labels_new_dataset(self, synchronised_datetime: str):
+        """Get the subset of the labels from the from travelling metadat that with
+        be applied when creating a new dataset. These are:
+        1. plane labels after the synchronised-datetime (i.e. created by the job)
+        2. any hash or address labels.
+        """
+
+        active_labels = self.get_labels(active=True)
+        for label in active_labels:
+            if (
+                label['label'][0] not in ['#', '@']
+                and label['created'] < synchronised_datetime
+            ):
+                active_labels.remove(label)
+
+        return active_labels
+
+    def get_labels(self, active=None, labels_only=False, label_type='all'):
         """Returns a list of the active/inactive Label Annotations.
         The last version of each label is returned.
         active not set, return complete set
         active = true - filter for active
+        If label_type is set, then filter for plain, hash(#) or address(@) labels
         """
         label_list = []
         label_set = set()
         # Read through labels in reverse order and take the latest one for
         # each label.
         for anno in reversed(self.labels):
-            if anno.get_label() not in label_set:
+            if anno.get_label(label_types=[label_type]) not in label_set:
                 label_list.append(anno)
                 label_set.add(anno.get_label())
 
@@ -496,6 +515,16 @@ class LabelAnnotation(Annotation):
     Purpose: Object to create a simple label type of annotation to add to the
     metadata.
 
+    Note that the label is associated with an implicit type:
+    hash labels (start with #) - can be pulled from multiple files when creating job annotations
+    address labels (start with @)  - can be pulled from only the 'derived-from' file when creating
+     job annotations.
+    plain labels - are only transferred to a new dataset if they are created as a job annotation or
+      uploaded as a new version of an existing dataset.
+
+    The optional 'reference' field is intended to be used to be used to communicate to a
+    future process such as the pose viewer
+
     """
 
     def __init__(
@@ -519,8 +548,19 @@ class LabelAnnotation(Annotation):
         ):
             raise AnnotationValidationError('LabelAnnotation', '2', 'value')
 
-    def get_label(self):
-        return self.label
+    def get_label(self, label_types=None):
+
+        if label_types is None:
+            label_types = ['all']
+
+        if 'all' in label_types:
+            return self.label
+        elif 'hash' in label_types and self.label[0] == '#':
+            return self.label
+        elif 'address' in label_types and self.label[0] == '@':
+            return self.label
+        elif 'plain' in label_types and self.label[0] not in ['#', '@']:
+            return self.label
 
     def get_value(self):
         return self.value

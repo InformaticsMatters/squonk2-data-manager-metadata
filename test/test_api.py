@@ -287,7 +287,7 @@ class DataTierTestCase(unittest.TestCase):
         labels_list = [
             {
                 'type': 'LabelAnnotation',
-                'label': 'label1',
+                'label': '@label1',
                 'value': 'value1',
                 'active': True,
             }
@@ -639,6 +639,14 @@ class DataTierTestCase(unittest.TestCase):
                         'service-execution': {
                             'service_ref': 'https://discourse.squonk.it/t/job-run-smina/78'
                         },
+                        'labels': {
+                            'label1': {'value': 'value1'},
+                            '@addlabel2': {
+                                'value': 'addressvalue2',
+                                'reference': 'poses',
+                            },
+                            '#hashlabel3': {'value': 'hashvalue3'},
+                        },
                         'derived-from': 'ligands',
                     },
                 }
@@ -658,6 +666,7 @@ class DataTierTestCase(unittest.TestCase):
             results_metadata = json.load(meta_file)
             self.assertEqual(results_metadata['dataset_name'], 'candidates-10.sdf')
             self.assertEqual(len(results_metadata['annotations']), 1)
+            self.assertEqual(len(results_metadata['labels']), 3)
 
         print('\nTest 21 ok')
 

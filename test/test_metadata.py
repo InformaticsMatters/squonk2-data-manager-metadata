@@ -91,11 +91,11 @@ class MetadataTestCase(unittest.TestCase):
         self.assertEqual(json_metadata, json_reload_metadata)
         print('\nTest 2.3 ok')
 
-        print('\n2.4. Label Annotation with reference')
-        annotation1 = LabelAnnotation('label1', 'value1', reference='pose')
+        print('\n2.4. Address Label Annotation with reference')
+        annotation1 = LabelAnnotation('@label1', 'value1', reference='pose')
         results1 = {
             'type': 'LabelAnnotation',
-            'label': 'label1',
+            'label': '@label1',
             'value': 'value1',
             'reference': "pose",
         }
@@ -103,6 +103,17 @@ class MetadataTestCase(unittest.TestCase):
         self.assertEqual(annotation1.get_label(), results1['label'])
         self.assertEqual(annotation1.get_reference(), results1['reference'])
         print('\nTest 2.4 ok')
+
+        print('\n2.5. Hash Label Annotation')
+        annotation1 = LabelAnnotation('#label1', 'hashvalue1')
+        results1 = {
+            'type': 'LabelAnnotation',
+            'label': '#label1',
+            'value': 'value1',
+        }
+        self.assertEqual(annotation1.__class__.__name__, results1['type'])
+        self.assertEqual(annotation1.get_label(), results1['label'])
+        print('\nTest 2.5 ok')
 
     def test_03_fields_annotations(self):
         print('\n3.1. FieldsDescriptor Annotation')
