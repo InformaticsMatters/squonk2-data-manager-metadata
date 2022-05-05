@@ -47,6 +47,7 @@ class LabelAnnotation {
     *label : String
     value : String
     active : Boolean
+    reference: String
     to_dict()
 }
 

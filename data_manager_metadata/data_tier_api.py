@@ -22,7 +22,11 @@ import os
 import json
 import logging
 
-from data_manager_metadata.metadata import Metadata, ServiceExecutionAnnotation
+from data_manager_metadata.metadata import (
+    Metadata,
+    ServiceExecutionAnnotation,
+    LabelAnnotation,
+)
 from data_manager_metadata.exceptions import AnnotationValidationError
 
 basic_logger = logging.getLogger('basic')
@@ -254,7 +258,15 @@ def post_travelling_metadata_to_new_dataset(
         version json schema
     """
 
-    d_metadata_params = {'labels': copy.deepcopy(travelling_metadata['labels'])}
+    t_metadata = Metadata(**travelling_metadata)
+    synchronised_datetime = t_metadata.get_synchronised_datetime()
+
+    d_metadata_params = {
+        'labels': copy.deepcopy(
+            t_metadata.get_labels_new_dataset(synchronised_datetime)
+        )
+    }
+
     v_metadata_params = {
         'annotations': copy.deepcopy(travelling_metadata['annotations'])
     }
@@ -327,7 +339,9 @@ def post_travelling_metadata_to_existing_dataset(
     synchronised_datetime = t_metadata.get_synchronised_datetime()
 
     d_metadata_params = {
-        'labels': copy.deepcopy(t_metadata.get_unapplied_labels(synchronised_datetime))
+        'labels': copy.deepcopy(
+            t_metadata.get_labels_existing_dataset(synchronised_datetime)
+        )
     }
     v_metadata_params = {
         'annotations': copy.deepcopy(travelling_metadata['annotations'])
@@ -364,21 +378,77 @@ def _get_derived_metadata(
 
     # Create the dictionary with the remaining parameters
     metadata = Metadata(derived_from, 'None', 'Automatically created by job', username)
+    metadata.set_synchronised_datetime()
+
     return metadata.to_dict()
 
 
+def _create_labels(output_spec: Dict[str, Any]) -> list:
+    """Creates a service execution annotation based on the input specification
+    Initially this will be coded according to SC-2623 but without the #labels from
+    other input files.
+
+    Remember that labels belong at the dataset level - not for versions.
+    So any labels here will be added to the dataset-level labels if the dataset is
+    uploaded.
+
+    1. From the derived metadata all (types of) labels will be kept (this actually happens in
+    _get_derived_metadata.
+    2. #Labels will be added from any other input files
+    3. Labels defined in the annotation-properties will be added.
+
+    Returns:
+         The new label annotations to add to the metadata
+    """
+    label_spec = output_spec["annotation-properties"].get('labels')
+
+    new_labels = []
+    # For 2)
+    # - look for metadata files for each input file.
+    # - If it exists then use the get_labels method with a label_type of 'hash'
+    # - Add these to the list.
+
+    # For 3)
+    # - look for the list of label in the annotation properties and add.
+    for label, values in label_spec.items():
+        if 'value' in values:
+            value = values['value']
+        else:
+            value = None
+
+        if 'active' in values:
+            active = values['active']
+        else:
+            active = True
+
+        if 'reference' in values:
+            reference = values['reference']
+        else:
+            reference = None
+
+        new_label = LabelAnnotation(
+            label, value=value, active=active, reference=reference
+        )
+        new_labels.append(new_label.to_dict())
+
+    return new_labels
+
+
 def _create_service_execution(
-    service_parameters: Dict[str, Any], username: str, output_spec
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    service_parameters: Dict[str, Any], username: str, output_spec: Dict[str, Any]
+) -> Dict[str, Any]:
     """Creates a service execution annotation based on the input specification
 
     Returns:
-         1. The service execution annotation and
-         2. the Fields that have been added (used in creating the parameters file.
+         The service execution annotation
     """
 
     fields_descriptor = output_spec["annotation-properties"]['fields-descriptor']
     service_execution = output_spec["annotation-properties"]['service-execution']
+
+    # Following a discussion on 04/05/2022 I've made this optional.
+    if 'service_ref' not in service_execution:
+        service_execution['service_ref'] = 'Not supplied'
 
     job = service_parameters['job']
     version = service_parameters['version']
@@ -425,13 +495,11 @@ def _create_service_execution(
             fields_descriptor['description'],
             fields_descriptor['fields'],
         )
-        return annotation.to_dict(), fields_descriptor['fields']
+        return annotation.to_dict()
     except AnnotationValidationError as e:
         basic_logger.info('AnnotationValidationError=%s', e.message)
-        return None, None
     except:  # pylint: disable=bare-except
         basic_logger.info('Unexpected Error')
-        return None, None
 
 
 def _get_params_filename(filepath: str) -> str:
@@ -450,7 +518,7 @@ def _get_params_filename(filepath: str) -> str:
 
 
 def _create_param_file(
-    fields: Dict[str, Any], result_path: str, result_filename: str
+    results_metadata: Dict[str, Any], result_path: str, result_filename: str
 ) -> str:
     """Creates a parameter file if requested from the fields that were added in
     Service Execution annotation.
@@ -458,9 +526,10 @@ def _create_param_file(
     """
     params_filename = _get_params_filename(result_filename)
     params_path = os.path.join(result_path, params_filename)
+    metadata = Metadata(**results_metadata)
 
     result_params = {}
-    for key, values in fields.items():
+    for key, values in metadata.get_compiled_fields()['fields'].items():
         result_params[key] = values['description']
 
     with open(params_path, 'wt', encoding='utf8') as params_file:
@@ -482,15 +551,12 @@ def _create_annotations(
     """For each specified output file with a set of annotations-parameters,
     create a metadata file in the directory specified.
 
-    Initially this will contain a service execution annotation based on
-    the specification data.
-
     Errors will be simply suppressed as this should not stop a job completing
 
     If create_param_file is set to True, then also create a json file containing a list of
     the parameters added to the SDF.
 
-    Returns a Tuple of booleans indicating whether a metadata file and/or parameter file has
+    Returns a list of meta files created and the parameter file if that has
     been created.
 
     """
@@ -533,15 +599,19 @@ def _create_annotations(
     else:
         derived_metadata = _get_derived_metadata(project_directory, username)
 
-    se_annotation, fields = _create_service_execution(
-        service_parameters, username, output_spec
-    )
+    new_labels = []
+    if output_spec["annotation-properties"].get('labels'):
+        new_labels = _create_labels(output_spec)
+
+    basic_logger.info('new_labels=%s', new_labels)
+
+    se_annotation = _create_service_execution(service_parameters, username, output_spec)
 
     basic_logger.info('se_annotation=%s', se_annotation)
 
-    if se_annotation:
+    if se_annotation or new_labels:
         results_metadata, results_schema = patch_travelling_metadata(
-            derived_metadata, annotations=se_annotation
+            derived_metadata, annotations=se_annotation, labels=new_labels
         )
     else:
         return meta_files, param_files
@@ -572,10 +642,8 @@ def _create_annotations(
         json.dump(results_schema, schema_file)
         meta_files.append(results_schema_path)
 
-    basic_logger.info('fields=%s', fields)
-
-    if fields and create_param_file:
-        param_files = _create_param_file(fields, result_path, result_filename)
+    if create_param_file:
+        param_files = _create_param_file(results_metadata, result_path, result_filename)
 
     return meta_files, param_files
 
