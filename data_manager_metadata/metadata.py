@@ -7,16 +7,23 @@
 """
 import json
 import datetime
-
-import yaml
+import logging
 import copy
 from typing import Any, Dict, List, Optional
 from abc import ABC, abstractmethod
 import re
 
 from decoder import decoder
+import yaml
 
 from .exceptions import ANNOTATION_ERRORS, AnnotationValidationError
+
+basic_logger = logging.getLogger('basic')
+basic_logger.setLevel(logging.INFO)
+basic_handler = logging.StreamHandler()
+basic_formatter = logging.Formatter('%(asctime)s # %(levelname)s %(message)s')
+basic_handler.setFormatter(basic_formatter)
+basic_logger.addHandler(basic_handler)
 
 _METADATA_VERSION: str = '0.0.1'
 _ANNOTATION_VERSION: str = '0.0.1'
@@ -687,9 +694,10 @@ class FieldsDescriptorAnnotation(Annotation):
         # The field name is then replaced using the result of the expression.
         rendered_field_name: str = field_name
         if expression:
+            basic_logger.info('Handling expression for "%s" (%s)', field_name, expression)
             # A Job spec must be provided
             if not job_spec:
-                raise RuntimeError('Bang')
+                raise RuntimeError(f'Field "{field_name}" with expression but no job_spec')
             # Extract variables from the Job spec using our decoder
             # and the "jinja2_3_0" templating engine (that's all that's available atm).
             variables: Dict[str, str] = job_spec.get('variables', {})
@@ -699,6 +707,8 @@ class FieldsDescriptorAnnotation(Annotation):
             if not success:
                 # Failed to render the expression.
                 # Do not add this field.
+                basic_logger.warning('Expression failure for "%s" (%s)',
+                                     field_name, rendered_field_name)
                 return
 
         # validate the field data
