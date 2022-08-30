@@ -16,6 +16,7 @@ from data_manager_metadata.exceptions import (
 
 class MetadataTestCase(unittest.TestCase):
 
+    maxDiff = None
     metadata = Metadata('test', '0000-1111', '', 'Bob')
 
     def test_01_metadata(self):
@@ -136,23 +137,57 @@ class MetadataTestCase(unittest.TestCase):
                 'required': False,
                 'active': True,
             },
+            'dynamic': {
+                'type': 'string',
+                'description': 'A dynamically named field',
+                'expression': '{{ dynamicFieldName }}',
+                'required': False,
+                'active': True,
+            },
+        }
+        spec = {'variables': {'dynamicFieldName': 'my_name'}}
+        expected_fields = {
+            'smiles': {
+                'type': 'string',
+                'description': 'standardized smiles',
+                'required': True,
+                'active': True,
+            },
+            'uuid': {
+                'type': 'string',
+                'description': 'Molecule Identifier',
+                'required': True,
+                'active': True,
+            },
+            'id': {
+                'type': 'string',
+                'description': 'File Identifier',
+                'required': False,
+                'active': True,
+            },
+            'my_name': {
+                'type': 'string',
+                'description': 'A dynamically named field',
+                'required': False,
+                'active': True,
+            },
         }
         annotation3 = FieldsDescriptorAnnotation(
-            'Supplier 1', 'A description', input_fields
+            'Supplier 1', 'A description', input_fields, spec
         )
-        ouput_fields = annotation3.get_fields()
-        self.assertEqual(ouput_fields, input_fields)
+        output_fields = annotation3.get_fields()
+        self.assertEqual(output_fields, expected_fields)
         self.assertEqual(annotation3.get_property('smiles'), input_fields['smiles'])
         self.assertEqual(annotation3.get_property('uuid'), input_fields['uuid'])
 
         # change field type
-        annotation3.add_field('id', prop_type='number')
+        annotation3.add_field(field_name='id', prop_type='number')
         self.assertNotEqual(annotation3.get_property('id'), input_fields['id'])
 
         # set to inactive
-        annotation3.add_field('id', active=False)
+        annotation3.add_field(field_name='id', active=False)
         self.assertNotEqual(annotation3.get_property('id'), input_fields['id'])
-        self.assertEqual(len(annotation3.get_fields(False)), 2)
+        self.assertEqual(len(annotation3.get_fields(False)), 3)
 
         output_JSONData = json.dumps(annotation3.to_json(), indent=4)
         output_json = json.loads(output_JSONData)
@@ -517,6 +552,7 @@ class MetadataTestCase(unittest.TestCase):
             'fields': {
                 'smiles': {'type': 'string', 'description': 'standardized smiles'},
                 'uuid': {'type': 'string', 'description': 'Molecule Identifier'},
+                'my_name': {'type': 'string', 'description': 'A dynamically named field'},
                 'ID': {'type': 'string', 'description': 'Changed File Identifier'},
             },
             'required': ['smiles', 'uuid'],
@@ -533,6 +569,7 @@ class MetadataTestCase(unittest.TestCase):
         expected_fields = {
             'smiles': {'type': 'string', 'description': 'standardized smiles'},
             'uuid': {'type': 'string', 'description': 'Molecule Identifier'},
+            'my_name': {'type': 'string', 'description': 'A dynamically named field'},
             'ID': {'type': 'string', 'description': 'Changed File Identifier'},
             'test1': {'type': 'string', 'description': 'test1'},
         }
@@ -557,6 +594,7 @@ class MetadataTestCase(unittest.TestCase):
         expected_fields = {
             'smiles': {'type': 'string', 'description': 'standardized smiles'},
             'uuid': {'type': 'string', 'description': 'Molecule Identifier'},
+            'my_name': {'type': 'string', 'description': 'A dynamically named field'},
             'ID': {'type': 'string', 'description': 'Changed File Identifier'},
             'test1': {'type': 'string', 'description': 'test1'},
             'test2': {'type': 'string', 'description': 'test2 - service ex'},
@@ -603,6 +641,12 @@ class MetadataTestCase(unittest.TestCase):
                     'type': 'string',
                     'description': 'standardized smiles',
                     'required': True,
+                    'active': True,
+                },
+                'my_name': {
+                    'type': 'string',
+                    'description': 'A dynamically named field',
+                    'required': False,
                     'active': True,
                 },
                 'ID': {
