@@ -498,7 +498,7 @@ def _create_service_execution(
         return annotation.to_dict()
     except AnnotationValidationError as e:
         basic_logger.info('AnnotationValidationError=%s', e.message)
-    except:  # pylint: disable=broad-except
+    except:  # pylint: disable=bare-except
         basic_logger.exception('Unexpected ServiceExecutionAnnotation exception')
 
 
