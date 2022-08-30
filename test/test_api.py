@@ -47,9 +47,17 @@ class DataTierTestCase(unittest.TestCase):
                 'required': False,
                 'active': True,
             },
+            'dynamicFieldName': {
+                'type': 'string',
+                'description': 'A dynamically named field',
+                'expression': '{{ dynamicFieldName }}',
+                'required': False,
+                'active': True,
+            },
         }
+        spec = {'variables': {'dynamicFieldName': 'my_name'}}
         annotation1 = FieldsDescriptorAnnotation(
-            'Supplier 1', 'A description', input_fields
+            'Supplier 1', 'A description', input_fields, spec
         )
 
         dataset_metadata, dataset_schema = post_dataset_metadata(
@@ -509,6 +517,7 @@ class DataTierTestCase(unittest.TestCase):
                 "boxPadding": 4,
                 "exhaustiveness": 8,
                 "scoringFunction": "vina",
+                "dynamicFieldName": "my_field",
             },
         }
 
@@ -537,6 +546,14 @@ class DataTierTestCase(unittest.TestCase):
                                     'description': 'Binding affinity predicted by smina docking',
                                     'required': True,
                                     'active': True,
+                                },
+                                'dynamicField': {
+                                    'type': 'string',
+                                    'description': 'A field renamed',
+                                    'expression': '{{ dynamicFieldName }}',
+                                    'required': False,
+                                    'active': True,
+
                                 }
                             },
                         },

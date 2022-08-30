@@ -7,11 +7,15 @@
 """
 import json
 import datetime
+import traceback
+
 import yaml
 import copy
-from typing import List
+from typing import Any, Dict, List, Optional
 from abc import ABC, abstractmethod
 import re
+
+from decoder import decoder
 
 from .exceptions import ANNOTATION_ERRORS, AnnotationValidationError
 
@@ -592,15 +596,16 @@ class FieldsDescriptorAnnotation(Annotation):
 
     """
 
-    def __init__(self, origin: str = '', description: str = '', fields: dict = None):
+    def __init__(self, origin: str = '', description: str = '', fields: dict = None, job_spec: dict = None):
 
         self.validate_origin(origin)
         self.origin = origin
         self.validate_description(description)
         self.description = description
+        self.spec = job_spec
         if fields:
             self.fields = {}
-            self.add_fields(fields)
+            self.add_fields(fields, job_spec)
         else:
             self.fields = {}
         super().__init__()
@@ -637,7 +642,7 @@ class FieldsDescriptorAnnotation(Annotation):
     ):
         """Validate an additions/updates to a field"""
 
-        # field_name is required to be between 1 and 12 characters
+        # field_name
         if not re.match(
             ANNOTATION_ERRORS['FieldsDescriptorAnnotation']['3']['regex'], field_name
         ):
@@ -667,37 +672,59 @@ class FieldsDescriptorAnnotation(Annotation):
 
     def add_field(
         self,
+        *,
         field_name: str,
         active: bool = True,
         prop_type: str = None,
         description: str = None,
+        expression: str = None,
         required: bool = None,
-    ):
+        job_spec: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """Add an individual property to the fields list"""
 
+        # If an expression is provided it is assumed to be a jinja2 expression
+        # that's expanded using the Job's original variables (in the specification).
+        # The field name is then replaced using the result of the expression.
+        rendered_field_name: str = field_name
+        if expression:
+            # A Job spec must be provided
+            if not job_spec:
+                raise RuntimeError('Bang')
+            # Extract variables from the Job spec using our decoder
+            # and the "jinja2_3_0" templating engine (that's all that's available atm).
+            variables: Dict[str, str] = job_spec.get('variables', {})
+            rendered_field_name, success = decoder.decode(
+                expression, variables, 'field-expression', decoder.TextEncoding.JINJA2_3_0
+            )
+            if not success:
+                # Failed to render the expression.
+                # Do not add this field.
+                return
+
         # validate the field data
-        self.validate_field(field_name, prop_type, description)
+        self.validate_field(rendered_field_name, prop_type, description)
 
         # Add to list
-        if field_name not in self.fields:
-            # Note that this has to be copied in or it will reference the same
-            # dict.
-            self.fields[field_name] = copy.deepcopy(FIELD_DICT)
+        if rendered_field_name not in self.fields:
+            # Note that this has to be copied in,
+            # or it will reference the same dictionary.
+            self.fields[rendered_field_name] = copy.deepcopy(FIELD_DICT)
 
-        self.fields[field_name]['active'] = active
+        self.fields[rendered_field_name]['active'] = active
 
         if prop_type:
-            self.fields[field_name]['type'] = prop_type.lower()
+            self.fields[rendered_field_name]['type'] = prop_type.lower()
         if description:
-            self.fields[field_name]['description'] = description
+            self.fields[rendered_field_name]['description'] = description
         if required:
-            self.fields[field_name]['required'] = required
+            self.fields[rendered_field_name]['required'] = required
 
     def get_property(self, field_name: str):
         """Get a property from the fields list identified by the name."""
         return self.fields[field_name]
 
-    def add_fields(self, new_fields: dict):
+    def add_fields(self, new_fields: dict, job_spec: Optional[dict] = None):
         """Add a dictionary of additions/updates to the fields list
         fields.
         """
@@ -705,19 +732,14 @@ class FieldsDescriptorAnnotation(Annotation):
         for prop, values in new_fields.items():
             # unpack the individual lines for processing, adding optional
             # fields.
-            if 'active' not in values.keys():
-                values['active'] = True
-            if 'description' not in values.keys():
-                values['description'] = ''
-            if 'required' not in values.keys():
-                values['required'] = False
-
             self.add_field(
-                prop,
-                values['active'],
-                values['type'],
-                values['description'],
-                values['required'],
+                field_name=prop,
+                active=values.get('active', True),
+                prop_type=values['type'],
+                description=values.get('description'),
+                expression=values.get('expression'),
+                required=values.get('required', False),
+                job_spec=job_spec,
             )
 
     def get_fields(self, get_all: bool = False):
@@ -776,7 +798,7 @@ class ServiceExecutionAnnotation(FieldsDescriptorAnnotation):
             self.service_parameters = copy.deepcopy(service_parameters)
         else:
             self.service_parameters = {}
-        super().__init__(origin, description, fields)
+        super().__init__(origin, description, fields, service_parameters)
 
     def get_service(self):
         return self.service
