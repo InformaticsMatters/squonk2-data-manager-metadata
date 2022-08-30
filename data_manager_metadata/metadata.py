@@ -735,12 +735,13 @@ class FieldsDescriptorAnnotation(Annotation):
 
     def add_fields(self, new_fields: dict, job_spec: Optional[dict] = None):
         """Add a dictionary of additions/updates to the fields list
-        fields.
+        fields. Each field must have a 'type'.
         """
 
         for prop, values in new_fields.items():
-            # unpack the individual lines for processing, adding optional
-            # fields.
+            # unpack the individual lines for processing, adding optional fields.
+            if 'type' not in values:
+                raise RuntimeError(f'Property "{prop}" has no "type"')
             self.add_field(
                 field_name=prop,
                 active=values.get('active', True),
