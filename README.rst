@@ -25,8 +25,6 @@ Running the Unit Tests
     >>> python -m unittest test.test_metadata
     >>> python -m unittest test.test_api
 
-
-
 Running the Command Line Interface *md-manage.py*
 *************************************************
 
@@ -62,7 +60,6 @@ uploaded.
                            -sp param1=val1 param2=val2 -fo='squonk2-job'
                            -fp='minimizedAffinity,number,Binding affinity predicted,true,true'
                            -fd='Run smina docking'
-
 
 Contributing
 ************

@@ -19,7 +19,7 @@ setup(
     version=os.environ.get('GITHUB_REF_SLUG', '0.0.0'),
     author='Tim Dudgeon',
     author_email='tdudgeon@informaticsmatters.com',
-    url='https://github.com/InformaticsMatters/data-manager-metadata',
+    url='https://github.com/InformaticsMatters/squonk2-data-manager-metadata',
     license='MIT',
     description='A framework for Informatics Matters dataset metadata',
     long_description=get_long_description(),
