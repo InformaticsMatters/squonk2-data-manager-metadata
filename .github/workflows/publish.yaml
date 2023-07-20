@@ -47,7 +47,7 @@ jobs:
         sed -i s/"_METADATA_VERSION: str = '0.0.0'"/"_METADATA_VERSION: str = '${TAG:-0.0.0}'"/ data_manager_metadata/metadata.py
         python setup.py bdist_wheel
     - name: Publish
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: ${{ secrets.PYPI_USERNAME }}
         password: ${{ secrets.PYPI_TOKEN }}
