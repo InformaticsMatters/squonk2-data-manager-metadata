@@ -32,9 +32,9 @@ setup(
     # Minimum requirements to use the metadata.
     # This is different to the requirements.txt file
     install_requires=[
-        'PyYAML>=5.3,<6.0',
+        'PyYAML>=6.0.1,<7.0',
         'jsonpickle>=2.0.0,<3.0.0',
-        'im-data-manager-job-decoder>=1.11.5,<2.0.0'
+        'im-data-manager-job-decoder>=1.17.2,<2.0.0'
     ],
 
     # Supported Python versions

@@ -1,16 +1,12 @@
-# A requirements file used by our Travis CI/CD process
-# to test and package the utilities. Refer to src/python/setup.py
-# for the module's runtime requirements.
-
 # For testing...
-black == 22.3.0
-coverage == 6.3.2
-pylint == 2.13.5
+black == 23.7.0
+coverage == 7.2.7
+pylint == 2.17.4
 pyroma
-setuptools == 56.2.0
+setuptools == 68.0.0
 pre-commit == 2.18.1
-PyYAML == 5.4.1
-im-data-manager-job-decoder == 1.8.0
+PyYAML == 6.0.1
+im-data-manager-job-decoder == 1.17.2
 
 # In order to run 'python setup.py bdist_wheel'...
-wheel == 0.36.2
+wheel == 0.40.0
