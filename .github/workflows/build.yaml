@@ -17,7 +17,12 @@ name: build
 # Environment         (none)
 
 on:
-- push
+  push:
+    branches:
+    - '**'
+  schedule:
+  # Build daily at 6:24am...
+  - cron: '24 6 * * *'
 
 jobs:
   build:
