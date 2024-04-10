@@ -1,6 +1,8 @@
 """Utilities for creating annotations
 """
+
 from ast import literal_eval
+
 
 def _check_array(field_value: str) -> bool:
     """If the field is a string that contains commas there is a fair chance
@@ -15,6 +17,7 @@ def _check_array(field_value: str) -> bool:
         return True
 
     return False
+
 
 def est_schema_field_type(field_value: str) -> str:
     """Estimates a standard json schema type for an input field_value.
@@ -39,8 +42,21 @@ def est_schema_field_type(field_value: str) -> str:
         # If a type cannot be identified, then check specific values.
         # If no specific value can be found return a string.
         if field_value in [
-            True, False, 'TRUE', 'FALSE', 'true', 'false', 'yes', 'no',
-            'YES', 'NO', 'Yes', 'No', "True", "False" ]:
+            True,
+            False,
+            'TRUE',
+            'FALSE',
+            'true',
+            'false',
+            'yes',
+            'no',
+            'YES',
+            'NO',
+            'Yes',
+            'No',
+            "True",
+            "False",
+        ]:
             return 'boolean'
         return 'string'
     except SyntaxError:
@@ -56,8 +72,21 @@ def est_schema_field_type(field_value: str) -> str:
                 return 'array'
         else:
             if field_value in [
-                True, False, 'TRUE', 'FALSE', 'true', 'false', 'yes', 'no',
-                'YES', 'NO', 'Yes', 'No', "True", "False"]:
+                True,
+                False,
+                'TRUE',
+                'FALSE',
+                'true',
+                'false',
+                'yes',
+                'no',
+                'YES',
+                'NO',
+                'Yes',
+                'No',
+                "True",
+                "False",
+            ]:
                 return 'boolean'
             if _check_array(field_value):
                 return 'array'

@@ -1,12 +1,12 @@
 # For testing...
-black == 23.7.0
-coverage == 7.2.7
-pylint == 2.17.4
-pyroma
-setuptools == 68.0.0
-pre-commit == 2.18.1
+black == 24.3.0
+coverage == 7.4.4
+pylint == 3.1.0
+pyroma == 4.2
+setuptools == 69.2.0
+pre-commit == 3.7.0
 PyYAML == 6.0.1
 im-data-manager-job-decoder == 1.17.2
 
 # In order to run 'python setup.py bdist_wheel'...
-wheel == 0.40.0
+wheel == 0.43.0

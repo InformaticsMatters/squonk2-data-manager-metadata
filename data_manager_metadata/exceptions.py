@@ -11,6 +11,7 @@
     2. The exception is for the 'type' field where a list of enumerated
     types are used.
 """
+
 SCHEMA_FIELD_TYPES = [
     'string',
     'number',

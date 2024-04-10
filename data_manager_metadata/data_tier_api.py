@@ -16,6 +16,7 @@
     and specification of the job.
 
 """
+
 from typing import Any, Dict, Tuple, Optional
 import copy
 import os
@@ -547,7 +548,6 @@ def _create_annotations(
     username: str,
     create_param_file: bool = False,
 ) -> Tuple[list, str]:
-
     """For each specified output file with a set of annotations-parameters,
     create a metadata file in the directory specified.
 

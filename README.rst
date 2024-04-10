@@ -18,8 +18,8 @@ Dependencies
 Running the Unit Tests
 **********************
 
-    >>> python -m venv ~/.venv/data-manager-metadata
-    >>> source ~/.venv/data-manager-metadata/bin/activate
+    >>> python -m venv venv
+    >>> source venv/bin/activate
     >>> pip install --upgrade pip
     >>> pip install -r package-requirements.txt
     >>> python -m unittest test.test_metadata

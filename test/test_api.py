@@ -553,8 +553,7 @@ class DataTierTestCase(unittest.TestCase):
                                     'expression': '{{ dynamicFieldName }}',
                                     'required': False,
                                     'active': True,
-
-                                }
+                                },
                             },
                         },
                         'service-execution': {

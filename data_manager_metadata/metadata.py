@@ -5,6 +5,7 @@
     The other classes should be searialisable without pickling hopefully:
     Hints: https://pynative.com/make-python-class-json-serializable/
 """
+
 import json
 import datetime
 import logging
@@ -602,7 +603,13 @@ class FieldsDescriptorAnnotation(Annotation):
 
     """
 
-    def __init__(self, origin: str = '', description: str = '', fields: dict = None, job_spec: dict = None):
+    def __init__(
+        self,
+        origin: str = '',
+        description: str = '',
+        fields: dict = None,
+        job_spec: dict = None,
+    ):
 
         self.validate_origin(origin)
         self.origin = origin
@@ -694,21 +701,29 @@ class FieldsDescriptorAnnotation(Annotation):
         # The field name is then replaced using the result of the expression.
         rendered_field_name: str = field_name
         if expression:
-            basic_logger.info('Handling expression for "%s" (%s)', field_name, expression)
+            basic_logger.info(
+                'Handling expression for "%s" (%s)', field_name, expression
+            )
             # A Job spec must be provided
             if not job_spec:
-                raise RuntimeError(f'Field "{field_name}" with expression but no job_spec')
+                raise RuntimeError(
+                    f'Field "{field_name}" with expression but no job_spec'
+                )
             # Extract variables from the Job spec using our decoder
             # and the "jinja2_3_0" templating engine (that's all that's available atm).
             variables: Dict[str, str] = job_spec.get('variables', {})
             rendered_field_name, success = decoder.decode(
-                expression, variables, 'field-expression', decoder.TextEncoding.JINJA2_3_0
+                expression,
+                variables,
+                'field-expression',
+                decoder.TextEncoding.JINJA2_3_0,
             )
             if not success:
                 # Failed to render the expression.
                 # Do not add this field.
-                basic_logger.warning('Expression failure for "%s" (%s)',
-                                     field_name, rendered_field_name)
+                basic_logger.warning(
+                    'Expression failure for "%s" (%s)', field_name, rendered_field_name
+                )
                 return
 
         # validate the field data

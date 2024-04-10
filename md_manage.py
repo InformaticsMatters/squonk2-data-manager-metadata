@@ -36,92 +36,137 @@ import os
 import sys
 import json
 from yaml import safe_load
-from data_manager_metadata.metadata import (FIELD_DICT,
-                                            get_annotation_filename,
-                                            Metadata,
-                                            LabelAnnotation,
-                                            FieldsDescriptorAnnotation,
-                                            ServiceExecutionAnnotation)
+from data_manager_metadata.metadata import (
+    FIELD_DICT,
+    get_annotation_filename,
+    Metadata,
+    LabelAnnotation,
+    FieldsDescriptorAnnotation,
+    ServiceExecutionAnnotation,
+)
 
 
-def add_label_annotation_args(parser):
-    """Add arguments for the label annotation formatter
-    """
+def add_label_annotation_args(c_parser):
+    """Add arguments for the label annotation formatter"""
     # This is common to all annotations should be first
-    parser.add_argument('filepath', type=str,
-                        help='Filepath to a (results) file that will have an annotations file. '
-                             'associated with it. If the file exists then annotations will be'
-                             ' appended - Required')
-    parser.add_argument('label', type=str, help='Label, required')
-    parser.add_argument('-lv', '--value', type=str, help='Value to attach the label, optional')
-    parser.add_argument('--make-inactive', action = 'store_false', help='When set, this makes the '
-                                                   'label inactive')
+    c_parser.add_argument(
+        'filepath',
+        type=str,
+        help='Filepath to a (results) file that will have an annotations file. '
+        'associated with it. If the file exists then annotations will be'
+        ' appended - Required',
+    )
+    c_parser.add_argument('label', type=str, help='Label, required')
+    c_parser.add_argument(
+        '-lv', '--value', type=str, help='Value to attach the label, optional'
+    )
+    c_parser.add_argument(
+        '--make-inactive',
+        action='store_false',
+        help='When set, this makes the ' 'label inactive',
+    )
 
-    parser.set_defaults(func=create_label_annotation)
+    c_parser.set_defaults(func=create_label_annotation)
 
 
-def add_fields_descriptor_annotation_args(parser):
-    """Add arguments for the fields descriptor annotation formatter
-    """
+def add_fields_descriptor_annotation_args(c_parser):
+    """Add arguments for the fields descriptor annotation formatter"""
     # This is common to all annotations should be first
-    parser.add_argument('filepath', type=str,
-                        help='Filepath to a (results) file that will have an annotations file. '
-                             'associated with it. If the file exists then annotations will be'
-                             ' appended - Required')
-    parser.add_argument('-fo', '--origin', type=str, help='Origin of Dataset')
-    parser.add_argument('-fd', '--description', type=str, help='Description of Dataset')
-    parser.add_argument('-fp', '--add_field_property', type=str,
-                        help='Add a field in comma separated form in order: name,type,'
-                             'description,required,active,semantic_ref. Fields: required, active '
-                             'and semantic-ref are optional ')
+    c_parser.add_argument(
+        'filepath',
+        type=str,
+        help='Filepath to a (results) file that will have an annotations file. '
+        'associated with it. If the file exists then annotations will be'
+        ' appended - Required',
+    )
+    c_parser.add_argument('-fo', '--origin', type=str, help='Origin of Dataset')
+    c_parser.add_argument(
+        '-fd', '--description', type=str, help='Description of Dataset'
+    )
+    c_parser.add_argument(
+        '-fp',
+        '--add_field_property',
+        type=str,
+        help='Add a field in comma separated form in order: name,type,'
+        'description,required,active,semantic_ref. Fields: required, active '
+        'and semantic-ref are optional ',
+    )
 
-    parser.set_defaults(func=create_fields_descriptor_annotation)
+    c_parser.set_defaults(func=create_fields_descriptor_annotation)
 
 
-def add_service_execution_annotation_args(parser):
-    """Add arguments for the service_execution annotation formatter
-    """
-    parser.add_argument('-su','--service_user', type=str,
-                        help='User initiating the service. Required input')
-    parser.add_argument('-sy', '--service_yaml_file', type=str,
-                        help='Route to yaml file containing service definition')
-    parser.add_argument('-sys', '--service_yaml_section', type=str,
-                        help='Section in yaml file containing service definition details')
-    parser.add_argument('-s', '--service', type=str,
-                        help='Name of the service being performed. Required if yaml file '
-                             'not present. If yaml file present, will overwrite value')
-    parser.add_argument('-sv', '--service_version', type=str,
-                        help='Version of the service being performed. Required if yaml file '
-                             'not present. If yaml file present, will overwrite value')
-    parser.add_argument('-sn', '--service_name', type=str,
-                        help='Name of service. Required if yaml file '
-                             'not present. If yaml file present, will overwrite value')
-    parser.add_argument('-sr', '--service_ref', type=str,
-                        help='URL reference to documentation for service. Required if yaml file '
-                             'not present. If yaml file present, will overwrite value')
-    parser.add_argument("-sp", '--service_parameters',
-                        metavar="KEY=VALUE",
-                        nargs='+',
-                        help="Add a number of key-value pairs containing service parameters "
-                             "(do not put spaces before or after the = sign). "
-                             "If a value contains spaces, you should define "
-                             "it with double quotes: "
-                             'foo="this is a sentence". Note that '
-                             "values are always treated as strings.")
+def add_service_execution_annotation_args(c_parser):
+    """Add arguments for the service_execution annotation formatter"""
+    c_parser.add_argument(
+        '-su',
+        '--service_user',
+        type=str,
+        help='User initiating the service. Required input',
+    )
+    c_parser.add_argument(
+        '-sy',
+        '--service_yaml_file',
+        type=str,
+        help='Route to yaml file containing service definition',
+    )
+    c_parser.add_argument(
+        '-sys',
+        '--service_yaml_section',
+        type=str,
+        help='Section in yaml file containing service definition details',
+    )
+    c_parser.add_argument(
+        '-s',
+        '--service',
+        type=str,
+        help='Name of the service being performed. Required if yaml file '
+        'not present. If yaml file present, will overwrite value',
+    )
+    c_parser.add_argument(
+        '-sv',
+        '--service_version',
+        type=str,
+        help='Version of the service being performed. Required if yaml file '
+        'not present. If yaml file present, will overwrite value',
+    )
+    c_parser.add_argument(
+        '-sn',
+        '--service_name',
+        type=str,
+        help='Name of service. Required if yaml file '
+        'not present. If yaml file present, will overwrite value',
+    )
+    c_parser.add_argument(
+        '-sr',
+        '--service_ref',
+        type=str,
+        help='URL reference to documentation for service. Required if yaml file '
+        'not present. If yaml file present, will overwrite value',
+    )
+    c_parser.add_argument(
+        "-sp",
+        '--service_parameters',
+        metavar="KEY=VALUE",
+        nargs='+',
+        help="Add a number of key-value pairs containing service parameters "
+        "(do not put spaces before or after the = sign). "
+        "If a value contains spaces, you should define "
+        "it with double quotes: "
+        'foo="this is a sentence". Note that '
+        "values are always treated as strings.",
+    )
     # filename is provided implicitly by the FieldsDescriptor
 
-    parser.set_defaults(func=create_service_execution_annotation)
+    c_parser.set_defaults(func=create_service_execution_annotation)
 
 
-def create_label_annotation(args):
-    """Add a label annotation to the annotation json file
-    """
-    return LabelAnnotation(args.label, args.value, args.make_inactive)
+def create_label_annotation(c_args):
+    """Add a label annotation to the annotation json file"""
+    return LabelAnnotation(c_args.label, c_args.value, c_args.make_inactive)
 
 
-def _create_field_dict(fields : str):
-    """Takes an list of fields in a string, unpacks and returns in a dictionary
-    """
+def _create_field_dict(fields: str):
+    """Takes an list of fields in a string, unpacks and returns in a dictionary"""
 
     field_dict: dict = {}
     # fields are of the form: name: (type,description,required,semantic-type)
@@ -139,21 +184,20 @@ def _create_field_dict(fields : str):
     return field_dict
 
 
-def create_fields_descriptor_annotation(args):
-    """Add a FieldsDescriptor annotation to the annotation json file
-    """
+def create_fields_descriptor_annotation(c_args):
+    """Add a FieldsDescriptor annotation to the annotation json file"""
     field_dict: dict = {}
 
-    if args.add_field_property:
-        field_dict = _create_field_dict(args.add_field_property)
+    if c_args.add_field_property:
+        field_dict = _create_field_dict(c_args.add_field_property)
 
-    return FieldsDescriptorAnnotation(args.origin, args.description, field_dict)
+    return FieldsDescriptorAnnotation(c_args.origin, c_args.description, field_dict)
 
 
 def _params_from_file(filename: str, section: str, param_dict: dict):
     """Parameters can be added from a supplied yaml file.
 
-       The yaml file has to follow the naming convention used in the virtual screening repo.
+    The yaml file has to follow the naming convention used in the virtual screening repo.
 
     """
 
@@ -161,7 +205,7 @@ def _params_from_file(filename: str, section: str, param_dict: dict):
         print('Yaml file does not exist in this location')
         sys.exit(1)
 
-    with open(filename, 'rt') as yaml_file:
+    with open(filename, 'rt', encoding='utf-8') as yaml_file:
         yaml_dict = safe_load(yaml_file)
         service_dict = yaml_dict['jobs'][section]
 
@@ -172,24 +216,25 @@ def _params_from_file(filename: str, section: str, param_dict: dict):
         # This is required in the annotation, so it should either be a required parameter or
         # added to the yaml.
         param_dict['service_ref'] = 'tba'
-        param_dict['service_parameters'] = {'container_image': service_dict['image'],
-                                            'container-command': service_dict['command'],
-                                            }
+        param_dict['service_parameters'] = {
+            'container_image': service_dict['image'],
+            'container-command': service_dict['command'],
+        }
 
     return param_dict
 
 
 def _parse_parameter(param: str):
     """
-     Parse a key, value pair, separated by '='
-     On the command line (argparse) a parameter looks like:
-         param=value
-     or
-         param="value"
-     """
+    Parse a key, value pair, separated by '='
+    On the command line (argparse) a parameter looks like:
+        param=value
+    or
+        param="value"
+    """
 
     items = param.split('=')
-    key = items[0].strip() # we remove blanks around keys, as is logical
+    key = items[0].strip()  # we remove blanks around keys, as is logical
     if len(items) > 1:
         # rejoin the rest:
         value = '='.join(items[1:])
@@ -199,8 +244,8 @@ def _parse_parameter(param: str):
 def _params_from_line(service_parameters: list, param_dict: dict):
     """Parameters can be added in the command line in the form of key/value pairs
 
-       The parameters are provided in a list that must be unpacked and added to the dictionary.
-       The is of form: ['param1=val1', 'param2=val2']
+    The parameters are provided in a list that must be unpacked and added to the dictionary.
+    The is of form: ['param1=val1', 'param2=val2']
 
     """
 
@@ -211,31 +256,33 @@ def _params_from_line(service_parameters: list, param_dict: dict):
     return param_dict
 
 
-def create_service_execution_annotation(args):
-    """Add a ServiceExecution annotation to the annotation json file
-    """
+def create_service_execution_annotation(c_args):
+    """Add a ServiceExecution annotation to the annotation json file"""
     field_dict: dict = ()
-    param_dict: dict = {'service': args.service, 'service_version': args.service_version,
-                       'service_user': args.service_user,
-                       'service_name': args.service_name,
-                       'service_ref': args.service_ref,
-                       'service_parameters': {},
-                       'origin': args.origin,
-                       'description': args.description,
-                       'fields': field_dict
-                        }
+    param_dict: dict = {
+        'service': c_args.service,
+        'service_version': c_args.service_version,
+        'service_user': c_args.service_user,
+        'service_name': c_args.service_name,
+        'service_ref': c_args.service_ref,
+        'service_parameters': {},
+        'origin': c_args.origin,
+        'description': c_args.description,
+        'fields': field_dict,
+    }
 
-    if args.add_field_property:
-        field_dict = _create_field_dict(args.add_field_property)
+    if c_args.add_field_property:
+        field_dict = _create_field_dict(c_args.add_field_property)
 
     param_dict['fields'] = field_dict
 
-    if args.service_yaml_file:
-        param_dict = _params_from_file(args.service_yaml_file, args.service_yaml_section,
-                                       param_dict)
+    if c_args.service_yaml_file:
+        param_dict = _params_from_file(
+            c_args.service_yaml_file, c_args.service_yaml_section, param_dict
+        )
 
-    if args.service_parameters:
-        param_dict = _params_from_line(args.service_parameters,param_dict)
+    if c_args.service_parameters:
+        param_dict = _params_from_line(c_args.service_parameters, param_dict)
 
     assert param_dict['service']
     assert param_dict['service_version']
@@ -249,15 +296,12 @@ def create_service_execution_annotation(args):
 
 
 if __name__ == '__main__':
-    """Add an annotation to the annotation json file using the given parameters
-    
-       parameters are specific to the requested annotation.
-       A filepath for an annotations file can be optionally provided. 
-       If the annotations file already exists, then the annotation will be added to it
-       in the form of an array.
-               
-    """
-
+    # Add an annotation to the annotation json file using the given parameters
+    #
+    # parameters are specific to the requested annotation.
+    # A filepath for an annotations file can be optionally provided.
+    # If the annotations file already exists, then the annotation will be added to it
+    # in the form of an array.
     parser = argparse.ArgumentParser('Metadata Annotation Generator')
     subparsers = parser.add_subparsers(help='Please choose an annotation type')
 
@@ -290,7 +334,7 @@ if __name__ == '__main__':
 
     if os.path.isfile(anno_file):
         # Annotations File already exists - import any annotations and add to the holder
-        with open(anno_file, 'rt') as existing_annotations:
+        with open(anno_file, 'rt', encoding='utf-8') as existing_annotations:
             meta_holder.add_annotations(existing_annotations.read())
 
     # Create the new annotation and add to the list
@@ -298,5 +342,5 @@ if __name__ == '__main__':
     meta_holder.add_annotation(anno)
 
     # Recreate output and write the list of annotations to it.
-    out_file = open(anno_file, "w")
+    out_file = open(anno_file, "w", encoding="utf-8")
     json.dump(meta_holder.get_annotations_dict(), out_file)

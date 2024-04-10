@@ -10,11 +10,10 @@ import os
 
 
 def get_long_description():
-    return open('README.rst').read()
+    return open('README.rst', encoding='utf-8').read()
 
 
 setup(
-
     name='im-data-manager-metadata',
     version=os.environ.get('GITHUB_REF_SLUG', '0.0.0'),
     author='Tim Dudgeon',
@@ -25,7 +24,6 @@ setup(
     long_description=get_long_description(),
     keywords='jenkins',
     platforms=['any'],
-
     # Our modules to package
     packages=find_packages(exclude=['*.test', '*.test.*', 'test.*', 'test']),
     py_modules=['data_manager_metadata'],
@@ -33,12 +31,10 @@ setup(
     # This is different to the requirements.txt file
     install_requires=[
         'PyYAML>=6.0.1,<7.0',
-        'im-data-manager-job-decoder>=1.17.2,<2.0.0'
+        'im-data-manager-job-decoder>=1.17.2,<2.0.0',
     ],
-
     # Supported Python versions
     python_requires='>=3, <4',
-
     # Project classification:
     # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -49,7 +45,5 @@ setup(
         'Programming Language :: Python :: 3.12',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-
     zip_safe=False,
-
 )

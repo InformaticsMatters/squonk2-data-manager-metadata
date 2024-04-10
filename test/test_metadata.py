@@ -552,7 +552,10 @@ class MetadataTestCase(unittest.TestCase):
             'fields': {
                 'smiles': {'type': 'string', 'description': 'standardized smiles'},
                 'uuid': {'type': 'string', 'description': 'Molecule Identifier'},
-                'my_name': {'type': 'string', 'description': 'A dynamically named field'},
+                'my_name': {
+                    'type': 'string',
+                    'description': 'A dynamically named field',
+                },
                 'ID': {'type': 'string', 'description': 'Changed File Identifier'},
             },
             'required': ['smiles', 'uuid'],
