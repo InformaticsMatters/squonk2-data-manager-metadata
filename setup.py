@@ -33,7 +33,6 @@ setup(
     # This is different to the requirements.txt file
     install_requires=[
         'PyYAML>=6.0.1,<7.0',
-        'jsonpickle>=2.0.0,<3.0.0',
         'im-data-manager-job-decoder>=1.17.2,<2.0.0'
     ],
 
@@ -47,7 +46,7 @@ setup(
         'Environment :: Console',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
 

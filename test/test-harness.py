@@ -1,7 +1,6 @@
 # Test harness for temporary tests
 import unittest
 import json
-import jsonpickle
 from data_manager_metadata.metadata import (Metadata,
                                             LabelAnnotation,
                                             FieldsDescriptorAnnotation,
