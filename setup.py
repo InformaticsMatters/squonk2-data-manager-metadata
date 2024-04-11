@@ -31,7 +31,7 @@ setup(
     # This is different to the requirements.txt file
     install_requires=[
         'PyYAML>=6.0.1,<7.0',
-        'im-data-manager-job-decoder>=1.17.2,<2.0.0',
+        'im-data-manager-job-decoder>=2.0.0,<3.0.0',
     ],
     # Supported Python versions
     python_requires='>=3, <4',
