@@ -30,12 +30,7 @@ from data_manager_metadata.metadata import (
 )
 from data_manager_metadata.exceptions import AnnotationValidationError
 
-basic_logger = logging.getLogger('basic')
-basic_logger.setLevel(logging.INFO)
-basic_handler = logging.StreamHandler()
-basic_formatter = logging.Formatter('%(asctime)s # %(levelname)s %(message)s')
-basic_handler.setFormatter(basic_formatter)
-basic_logger.addHandler(basic_handler)
+basic_logger: logging.Logger = logging.getLogger(__name__)
 
 
 def get_metadata_filenames(filepath: str) -> Tuple[str, str]:

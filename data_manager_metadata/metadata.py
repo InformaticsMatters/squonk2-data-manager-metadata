@@ -19,12 +19,7 @@ import yaml
 
 from .exceptions import ANNOTATION_ERRORS, AnnotationValidationError
 
-basic_logger = logging.getLogger('basic')
-basic_logger.setLevel(logging.INFO)
-basic_handler = logging.StreamHandler()
-basic_formatter = logging.Formatter('%(asctime)s # %(levelname)s %(message)s')
-basic_handler.setFormatter(basic_formatter)
-basic_logger.addHandler(basic_handler)
+basic_logger: logging.Logger = logging.getLogger(__name__)
 
 _METADATA_VERSION: str = '0.0.1'
 _ANNOTATION_VERSION: str = '0.0.1'
