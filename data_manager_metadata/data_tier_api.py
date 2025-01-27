@@ -564,15 +564,22 @@ def _create_annotations(
 
     # Some sanity-checking before we go any further...
     if not project_directory:
+        basic_logger.warning("No project directory specified")
         return meta_files, param_files
     if not output_spec["creates"]:
+        basic_logger.warning("Output spec has no 'creates'")
         return meta_files, param_files
     if not output_spec["annotation-properties"].get('fields-descriptor'):
+        basic_logger.warning(
+            "Output spec annotation-properties has no 'fields-descriptor'"
+        )
         return meta_files, param_files
     if not output_spec["annotation-properties"].get('service-execution'):
+        basic_logger.warning(
+            "Output spec annotation-properties has no 'service-execution'"
+        )
         return meta_files, param_files
-
-    basic_logger.info('sanity checks OK')
+    basic_logger.info('Sanity checks OK')
 
     # Take service parameters from rendered specification and modify.
     service_parameters: Dict[str, Any] = copy.deepcopy(job_rendered_spec)
@@ -623,8 +630,10 @@ def _create_annotations(
     )
 
     result_path = os.path.join(project_directory, result_dir)
-
     if not os.path.isdir(result_path):
+        basic_logger.warning(
+            "Project result_path (%s) does not exist. Leaving", result_path
+        )
         return meta_files, param_files
 
     results_metadata_path = os.path.join(result_path, results_metadata_filename)
