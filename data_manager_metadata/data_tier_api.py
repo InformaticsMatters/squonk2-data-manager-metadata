@@ -685,11 +685,23 @@ def create_job_annotations(
     written_files = []
     outputs: Optional[Dict[str, Any]] = job_rendered_spec.get('outputs')
     if not outputs:
+        basic_logger.info(
+            'No outputs found in the rendered specification (%s)', project_directory
+        )
         return written_files
 
     # Loop through the output specifications for the different outputs
+    basic_logger.info(
+        'Found %d outputs in the rendered specification (%s)',
+        len(outputs),
+        project_directory,
+    )
     for output_spec in outputs.values():
         if output_spec.get('annotation-properties'):
+            basic_logger.info(
+                'Found annotation-properties. Creating annotations... (%s)',
+                project_directory,
+            )
             meta, param_file = _create_annotations(
                 project_directory,
                 job_application_spec,
@@ -699,10 +711,19 @@ def create_job_annotations(
                 create_param_file,
             )
 
-            basic_logger.info('meta_files=%s', meta)
-            basic_logger.info('param_files=%s', param_file)
+            basic_logger.info('meta_files=%s (%s)', meta, project_directory)
+            basic_logger.info('param_files=%s (%s)', param_file, project_directory)
             written_files.extend(meta)
             if param_file:
                 written_files.append(param_file)
+        else:
+            basic_logger.info(
+                'No annotation-properties in output spec (%s) (%s)',
+                output_spec,
+                project_directory,
+            )
 
+    basic_logger.info(
+        'Done (%s). Number of written files: %d', project_directory, len(written_files)
+    )
     return written_files
