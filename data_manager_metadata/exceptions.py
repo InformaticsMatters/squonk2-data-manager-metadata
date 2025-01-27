@@ -1,15 +1,16 @@
 """Data Manager Metadata Exceptions.
 
-    An AnnotationValidationError will be raised with one of the messages
-    contained in ANNOTATION_ERRORS.
-    Messages can optionally contain one runtime variable that can be used
-    to identify, for example, a field in a FieldDescriptorAnnotation.
+An AnnotationValidationError will be raised with one of the messages
+contained in ANNOTATION_ERRORS.
 
-    ANNOTATION_ERRORS notes:
-    1. The field 'regex' is normally used for the field identified by the
-    annotation class and field.
-    2. The exception is for the 'type' field where a list of enumerated
-    types are used.
+Messages can optionally contain one runtime variable that can be used
+to identify, for example, a field in a FieldDescriptorAnnotation.
+
+ANNOTATION_ERRORS notes:
+1. The field 'regex' is normally used for the field identified by the
+annotation class and field.
+2. The exception is for the 'type' field where a list of enumerated
+types are used.
 """
 
 SCHEMA_FIELD_TYPES = [

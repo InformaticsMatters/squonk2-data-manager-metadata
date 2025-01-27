@@ -1,20 +1,23 @@
 """Data Tier API.
 
-    The interface layer between the mini-apps-data-tier repo and the
-    data-manager-metadata repo.
+The interface layer between the mini-apps-data-tier repo and the
+data-manager-metadata repo.
 
-    Note that:
-    - dataset metadata is the metadata that is stored at the dataset level in the data manager.
-    This has labels and property changes (like the description)
-    - version metadata is the metadata that is stored at the dataset version level in the data
-    manager. This does not have labels but has the other types of annotations such as
-    ServiceExecution and FieldsDescriptor
-    - travelling metadata is a combination of dataset and version metadata that is typically
-    downloaded to a project as a meta.json file, added to after a job and then re-uploaded back
-    as a dataset.
-    - The job related annotations that are added to the metadata depend on the configuration
-    and specification of the job.
+Note that:
 
+Dataset metadata is the metadata that is stored at the dataset level in the data manager.
+This has labels and property changes (like the description)
+
+Version metadata is the metadata that is stored at the dataset version level in the data
+manager. This does not have labels but has the other types of annotations such as
+ServiceExecution and FieldsDescriptor
+
+Travelling metadata is a combination of dataset and version metadata that is typically
+downloaded to a project as a meta.json file, added to after a job and then re-uploaded back
+as a dataset.
+
+The job related annotations that are added to the metadata depend on the configuration
+and specification of the job.
 """
 
 from typing import Any, Dict, Tuple, Optional

@@ -1,9 +1,9 @@
 """Data Manager Metadata Class Definitions.
 
-    Note that the Metadata class is pickled when saved in the database so that
-    we can hold the annotations as an ordered list of objects.
-    The other classes should be searialisable without pickling hopefully:
-    Hints: https://pynative.com/make-python-class-json-serializable/
+Note that the Metadata class is pickled when saved in the database so that
+we can hold the annotations as an ordered list of objects.
+The other classes should be searialisable without pickling hopefully:
+Hints: https://pynative.com/make-python-class-json-serializable/
 """
 
 import json
