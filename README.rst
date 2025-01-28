@@ -12,7 +12,7 @@ as a metadata framework for molecular datasets.
 
 Dependencies
 ************
-- PyYAML>=5.3
+- PyYAML>=6.0.1,<7.0
 
 
 Running the Unit Tests
