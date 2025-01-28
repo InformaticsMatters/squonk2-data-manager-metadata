@@ -458,8 +458,7 @@ jobs:
                       Type of enumerated form. B=base molecule, T=tautomer, M=microstate
                     required: true
                     active: true
-              service-execution:
-                service_ref: 'https://discourse.squonk.it/t/job-assemble-conformers/73'
+              # No service-execution
       options:
         type: object
         required:

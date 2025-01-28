@@ -40,15 +40,15 @@ def get_metadata_filenames(filepath: str) -> Tuple[str, str]:
     """Return the associated metadata and schema filenames for a particular
     filepath.
     """
-    _METADATA_EXT = '.meta.json'
-    _SCHEMA_EXT = '.schema.json'
-
     assert filepath
 
     # Get filename stem from filepath
     # so in: 'filename.sdf.gz', we would get just 'filename'
     file_basename = os.path.basename(filepath)
     filename_stem = file_basename.split('.')[0]
+
+    _METADATA_EXT = '.meta.json'
+    _SCHEMA_EXT = '.schema.json'
     return filename_stem + _METADATA_EXT, filename_stem + _SCHEMA_EXT
 
 
@@ -164,7 +164,7 @@ def get_version_schema(
     inherited changed attributes from the dataset level.
 
     Args:
-        version metedata
+        version metadata
 
     Returns:
         json_schema
@@ -365,7 +365,7 @@ def _get_derived_metadata(
 
     if isinstance(source_file, str):
         # If the source_file is a string then check for it. We don't allow multiple input files
-        # for the source metadata yet - future extension (see sc-2608 Tims comment)
+        # for the source metadata yet - future extension (see sc-2608 Tim's comment)
         meta_file, dummy = get_metadata_filenames(source_file)
         meta_dir = os.path.dirname(source_file)
         meta_path = os.path.join(project_directory, meta_dir, meta_file)
@@ -410,21 +410,9 @@ def _create_labels(output_spec: Dict[str, Any]) -> list:
     # For 3)
     # - look for the list of label in the annotation properties and add.
     for label, values in label_spec.items():
-        if 'value' in values:
-            value = values['value']
-        else:
-            value = None
-
-        if 'active' in values:
-            active = values['active']
-        else:
-            active = True
-
-        if 'reference' in values:
-            reference = values['reference']
-        else:
-            reference = None
-
+        value = values['value'] if 'value' in values else None
+        active = values['active'] if 'active' in values else True
+        reference = values['reference'] if 'reference' in values else None
         new_label = LabelAnnotation(
             label, value=value, active=active, reference=reference
         )
@@ -434,42 +422,38 @@ def _create_labels(output_spec: Dict[str, Any]) -> list:
 
 
 def _create_service_execution(
-    service_parameters: Dict[str, Any], username: str, output_spec: Dict[str, Any]
+    job_rendered_spec: Dict[str, Any], username: str, output_spec: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """Creates a service execution annotation based on the input specification
+    """Creates a service execution annotation based on the input specification.
+    A fields-descriptor is required in the output spec but the service-execution
+    is optional. It is used to provide a 'service_ref'. If that is not supplied
+    a 'Not supplied' message is used.
 
     Returns:
-         The service execution annotation
+        The service execution annotation
     """
 
+    # Get the fields descriptor from the output spec
     fields_descriptor = output_spec["annotation-properties"]['fields-descriptor']
-    service_execution = output_spec["annotation-properties"]['service-execution']
+    service_execution = output_spec["annotation-properties"].get(
+        'service-execution', {}
+    )
 
     # Following a discussion on 04/05/2022 I've made this optional.
     if 'service_ref' not in service_execution:
         service_execution['service_ref'] = 'Not supplied'
 
-    job = service_parameters['job']
-    version = service_parameters['version']
+    job = job_rendered_spec['job']
+    version = job_rendered_spec['version']
 
     # Remove the job and version from the specification as we already have them
-    service_parameters.pop('job', None)
-    service_parameters.pop('version', None)
+    job_rendered_spec.pop('job', None)
+    job_rendered_spec.pop('version', None)
 
     # Remove the duplicated annotation-properties from the service_parameters
-    for values in service_parameters['outputs'].values():
+    for values in job_rendered_spec['outputs'].values():
         if values.get('annotation-properties'):
             values.pop('annotation-properties', None)
-
-    # print(job)
-    # print(version)
-    # print(username)
-    # #print(job_application_spec['name'])
-    # print(service_execution['service_ref'])
-    # print(service_parameters)
-    # print(fields_descriptor['origin'])
-    # print(fields_descriptor['description'])
-    # print(fields_descriptor['fields'])
 
     try:
         # service: str, - instance.job - checked when spec created
@@ -489,7 +473,7 @@ def _create_service_execution(
             # job_application_spec['name'],
             job,
             service_execution['service_ref'],
-            service_parameters,
+            job_rendered_spec,
             fields_descriptor['origin'],
             fields_descriptor['description'],
             fields_descriptor['fields'],
@@ -497,7 +481,7 @@ def _create_service_execution(
         return annotation.to_dict()
     except AnnotationValidationError as e:
         basic_logger.info('AnnotationValidationError=%s', e.message)
-    except:  # pylint: disable=bare-except
+    except Exception:  # pylint: disable=broad-except
         basic_logger.exception('Unexpected ServiceExecutionAnnotation exception')
 
 
@@ -505,14 +489,14 @@ def _get_params_filename(filepath: str) -> str:
     """Return the associated parameter filename for a particular
     filepath.
     """
-    _PARAM_EXT = '.params.json'
-
     assert filepath
 
     # Get filename stem from filepath
     # so in: 'filename.sdf.gz', we would get just 'filename'
     file_basename = os.path.basename(filepath)
     filename_stem = file_basename.split('.')[0]
+
+    _PARAM_EXT = '.params.json'
     return filename_stem + _PARAM_EXT
 
 
@@ -527,10 +511,10 @@ def _create_param_file(
     params_path = os.path.join(result_path, params_filename)
     metadata = Metadata(**results_metadata)
 
-    result_params = {}
-    for key, values in metadata.get_compiled_fields()['fields'].items():
-        result_params[key] = values['description']
-
+    result_params = {
+        key: values['description']
+        for key, values in metadata.get_compiled_fields()['fields'].items()
+    }
     with open(params_path, 'wt', encoding='utf8') as params_file:
         # Dump params of fields created
         json.dump(result_params, params_file)
@@ -556,7 +540,6 @@ def _create_annotations(
 
     Returns a list of meta files created and the parameter file if that has
     been created.
-
     """
 
     meta_files = []
@@ -566,6 +549,8 @@ def _create_annotations(
     if not project_directory:
         basic_logger.warning("No project directory specified")
         return meta_files, param_files
+    # To do anything the output spec is expected to contain 'outputs',
+    # a 'fields-description', and an optional 'service-execution' section.
     if not output_spec["creates"]:
         basic_logger.warning("Output spec has no 'creates'")
         return meta_files, param_files
@@ -574,30 +559,23 @@ def _create_annotations(
             "Output spec annotation-properties has no 'fields-descriptor'"
         )
         return meta_files, param_files
-    if not output_spec["annotation-properties"].get('service-execution'):
-        basic_logger.warning(
-            "Output spec annotation-properties has no 'service-execution'"
-        )
-        return meta_files, param_files
-    basic_logger.info('Sanity checks OK')
 
     # Take service parameters from rendered specification and modify.
-    service_parameters: Dict[str, Any] = copy.deepcopy(job_rendered_spec)
+    job_rendered_spec: Dict[str, Any] = copy.deepcopy(job_rendered_spec)
 
-    # Check if there are any variables in the original spec. If so, add them
+    # Add any variables from the application spec
     variables: Optional[Dict[str, Any]] = job_application_spec.get('variables')
-    service_parameters['variables'] = variables
+    job_rendered_spec['variables'] = variables
 
-    # If there is a derived-from parameter in the service-execution spec
-    # then there might be an existing travelling metadata file attached to the input file.
-    # Look for this in the project_directory.
-    # If it exists, any annotations should be added to it and this will be the metadata for the
-    # associated results file.
+    # If there is a derived-from parameter in the spec's annotations
+    # then there might be an existing travelling metadata file attached
+    # to the input file. If it exists, any annotations should be added to it
+    # and this will be the metadata for the associated results file.
     # If it does not exist - create a new travelling metadata file with the annotations.
 
     if 'derived-from' in output_spec["annotation-properties"]:
         derived_from = output_spec["annotation-properties"]['derived-from']
-        source_file = service_parameters['variables'][derived_from]
+        source_file = job_rendered_spec['variables'][derived_from]
         derived_metadata = _get_derived_metadata(
             project_directory, username, source_file, derived_from
         )
@@ -607,12 +585,10 @@ def _create_annotations(
     new_labels = []
     if output_spec["annotation-properties"].get('labels'):
         new_labels = _create_labels(output_spec)
+    basic_logger.debug('new_labels=%s', new_labels)
 
-    basic_logger.info('new_labels=%s', new_labels)
-
-    se_annotation = _create_service_execution(service_parameters, username, output_spec)
-
-    basic_logger.info('se_annotation=%s', se_annotation)
+    se_annotation = _create_service_execution(job_rendered_spec, username, output_spec)
+    basic_logger.debug('se_annotation=%s', se_annotation)
 
     if se_annotation or new_labels:
         results_metadata, results_schema = patch_travelling_metadata(
@@ -620,8 +596,7 @@ def _create_annotations(
         )
     else:
         return meta_files, param_files
-
-    basic_logger.info('results_metadata=%s', results_metadata)
+    basic_logger.debug('results_metadata=%s', results_metadata)
 
     result_dir = os.path.dirname(output_spec['creates'])
     result_filename = os.path.basename(output_spec['creates'])
@@ -679,13 +654,13 @@ def create_job_annotations(
                             virtual-screening.yaml file.
         job_rendered_spec - Rendered job specification from the posted instance in the
                             data manager.
+        username -          The user responsible for the execution
         create_param_file - (optional) If set to true a json dict will be written to a file
                             containing descriptions of the parameters added as part of the Service
                             Execution.
 
     Returns:
-        metadata: list - returns a list of metadata and schema files have been created
-        params: list - returns a list of any param_files that have been created
+        written_files: list - returns a list of metadata and schema files have been created
     """
 
     # Say Hello
@@ -732,7 +707,6 @@ def create_job_annotations(
                 project_directory,
             )
 
-    basic_logger.info(
-        'Done (%s). Number of written files: %d', project_directory, len(written_files)
-    )
+    basic_logger.info('Done (%s). Written: %s', project_directory, written_files)
+
     return written_files
